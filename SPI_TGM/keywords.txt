@@ -1,0 +1,44 @@
+#######################################
+# Syntax Coloring Map SPI_TGM
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+SPI_TGM	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+init	KEYWORD2
+quick_tone	KEYWORD2
+quick_tone_vol	KEYWORD2
+quick_tone_vol_cosramp_5ms KEYWORD2
+SPI_pin_clean KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+UNO	LITERAL1
+MEGA2560	LITERAL1
+INIT_VOL LITERAL1
+VOLUME_OFF LITERAL1
+VOLUME_ON LITERAL1
+VOLUME_ARRAY LITERAL1
+SWEEP_OFF LITERAL1
+SWEEP_ON LITERAL1
+SWEEP_ARRAY LITERAL1
+PREP_OFF LITERAL1
+PREP_ON LITERAL1
+PREP_ONOFF LITERAL1
+TONE_FLAG_OFF LITERAL1
+TONE_FLAG_ON LITERAL1
+INIT_FQ LITERAL1
+INIT_VOL LITERAL1
+STEP_FLAG_OFF LITERAL1
+STEP_FLAG_COS_5MS LITERAL1
+
+
+
+

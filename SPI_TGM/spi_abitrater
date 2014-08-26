@@ -1,0 +1,9 @@
+a	b	aB	bB
+1	0	1	0
+0	1	0	1
+0	0	0	0
+1	1	k	k
+
+aB:	a device busy 2b
+bB: b device busy 2a
+k:	keep

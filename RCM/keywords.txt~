@@ -1,0 +1,45 @@
+#######################################
+# Syntax Coloring Map SPI_TGM
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+RCM	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+init	KEYWORD2
+second	KEYWORD2
+minute	KEYWORD2
+hour KEYWORD2
+day KEYWORD2
+date	KEYWORD2
+month	KEYWORD2
+year	KEYWORD2
+
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+DS_12C887_SEC_ADDR	LITERAL1
+DS_12C887_SEC_ALARM_ADDR	LITERAL1
+DS_12C887_MIN_ADDR LITERAL1
+DS_12C887_MIN_ALARM_ADDR LITERAL1
+DS_12C887_HOUR_ADDR LITERAL1
+DS_12C887_HOUR_ALARM_ADDR LITERAL1
+DS_12C887_DAY_ADDR LITERAL1
+DS_12C887_DATE_ADDR LITERAL1
+DS_12C887_MONTH_ADDR LITERAL1
+DS_12C887_YEAR_ADDR LITERAL1
+DS_12C887_REGA LITERAL1
+DS_12C887_REGB LITERAL1
+DS_12C887_REGC LITERAL1
+DS_12C887_REGD LITERAL1
+DS_12C887_CENTURY_ADDR LITERAL1
+
+
+
+
