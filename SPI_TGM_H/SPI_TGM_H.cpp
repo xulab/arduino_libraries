@@ -374,7 +374,11 @@ inline static void _set_ctc_isi(uint16_t data){
 }
 
 inline static void _set_step_vol(byte i){
-	_set_vol(_target_vol - vol_step_val_5ms_cos[i]);
+    if (_target_vol > vol_step_val_5ms_cos[i]){
+	    _set_vol(_target_vol - vol_step_val_5ms_cos[i]);
+    }else{
+	    _set_vol(0);
+    }
 }
 
 inline static void _set_step_up(){
