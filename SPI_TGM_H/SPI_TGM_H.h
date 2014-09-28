@@ -5,8 +5,8 @@
 	#include "WProgram.h"
 #endif
 
-#ifndef _SPI_TGM_H
-#define _SPI_TGM_H
+#ifndef _SPI_TGM_H_H
+#define _SPI_TGM_H_H
 #include "Arduino.h"
 #ifndef NOP()
 #define NOP() __asm__ __volatile__ ("nop")
