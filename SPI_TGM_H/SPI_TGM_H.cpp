@@ -308,6 +308,7 @@ volatile static uint16_t chord_fq_array[MAX_CHORD_NUM];
 volatile static uint16_t chord_fq_num = 0;
 uint32_t sweep_fq0 = 0;
 uint32_t sweep_fq1 = 0;
+uint32_t sweep_fq2 = 0;
 byte sweep_mode = SWEEP_OFF;
 
 
@@ -458,6 +459,29 @@ static void _sweep_tone_exp(uint16_t fq0, uint16_t fq1, uint16_t _time, byte vol
 	sweep_index_size = ((uint32_t)_time)*1000/sweep_interval;
 	sweep_base =  exp(log((double)fq1/(double)fq0) / (double)sweep_index_size);
 	timer1_mode = TIMER1_SWEEP_EXP;
+	_set_ctc_isi(sweep_interval*16);//16 cycles per us
+	_timer1_start(PRE_SCALE_0DIV);
+	while(TIMER1_STOP != timer1_mode);
+	sweep_index = 0;
+}
+
+static void _sweep_tone_peak(uint16_t fq0, uint16_t fq1, uint16_t fq2, uint16_t _time, byte vol){
+	uint32_t sweep_interval = _SWEEP_INTERVAL_; //us
+	_set_vol(vol);
+	_set_fq(fq0);
+	sweep_index = 0;
+	sweep_index_size = (((uint32_t)_time)*1000/sweep_interval)/2;//based on linear change mode
+	sweep_linear_step = ((double)fq1 - (double)fq0)/((double)sweep_index_size);
+	timer1_mode = TIMER1_SWEEP_LINEAR;
+	_set_ctc_isi(sweep_interval*16);//16 cycles per us
+	_timer1_start(PRE_SCALE_0DIV);
+	while(TIMER1_STOP != timer1_mode);
+	sweep_index = 0;
+	_set_fq(fq1);
+	sweep_fq0 = sweep_fq1;
+	sweep_index_size = (((uint32_t)_time)*1000/sweep_interval)/2;//based on linear change mode
+	sweep_linear_step = ((double)fq2 - (double)fq1)/((double)sweep_index_size);
+	timer1_mode = TIMER1_SWEEP_LINEAR;
 	_set_ctc_isi(sweep_interval*16);//16 cycles per us
 	_timer1_start(PRE_SCALE_0DIV);
 	while(TIMER1_STOP != timer1_mode);
@@ -743,6 +767,24 @@ void SPI_TGMClass::quick_sweep_exp_cosramp_5ms(uint16_t duration, uint16_t fq0, 
 }
 
 
+
+void SPI_TGMClass::quick_sweep_peak_cosramp_5ms(uint16_t duration, uint16_t fq0, uint16_t fq1, uint16_t fq2, byte vol){
+	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
+	_QUICK_TONE.duration = duration;
+	_QUICK_TONE.frequency0 = fq0;
+	_QUICK_TONE.frequency1 = fq1;
+	_QUICK_TONE.frequency2 = fq2;
+	// _QUICK_TONE.sweep_base = base;
+	_QUICK_TONE.volume_mode = VOLUME_ON;
+	_QUICK_TONE.volume = vol;
+	_QUICK_TONE.step_up_flag = STEP_FLAG_COS_5MS;
+	_QUICK_TONE.step_down_flag = STEP_FLAG_COS_5MS;
+	_QUICK_TONE.sweep = SWEEP_PEAK;
+	_write_tone(&_QUICK_TONE);
+	_set_empty_tone(&_QUICK_TONE);
+}
+
+
 void SPI_TGMClass::quick_noise_cosramp_5ms(uint16_t duration, uint16_t fq0, uint16_t fq1, byte vol, byte mode){
 	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
 	_QUICK_TONE.duration = duration;
@@ -860,6 +902,7 @@ void SPI_TGMClass::set_tone(){
 		sweep_mode = tone.sweep;
 		sweep_fq0 = tone.frequency0;
 		sweep_fq1 = tone.frequency1;
+		sweep_fq2 = tone.frequency2;
 		memcpy((void* )chord_fq_array, &(tone.frequency0), sizeof(tone.frequency0)*tone.chord_num);
 		chord_fq_num = tone.chord_num;
 		_set_vol(0);
@@ -874,6 +917,10 @@ void SPI_TGMClass::set_tone(){
 			break;
 
 			case SWEEP_EXP:
+			_set_fq(tone.frequency0);
+			break;
+
+			case SWEEP_PEAK:
 			_set_fq(tone.frequency0);
 			break;
 
@@ -922,6 +969,10 @@ void SPI_TGMClass::set_tone(){
 
 			case SWEEP_EXP:
 			_sweep_tone_exp(tone.frequency0,tone.frequency1,tone.duration,_target_vol);
+			break;
+
+			case SWEEP_PEAK:
+			_sweep_tone_peak(tone.frequency0,tone.frequency1,tone.frequency2,tone.duration,_target_vol);
 			break;
 
 			case SWEEP_ARRAY:

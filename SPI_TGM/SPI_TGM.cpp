@@ -1,6 +1,6 @@
-/* version 05
- * modified in 2014-06-11
- * change: reprogram for new cache board
+/* version 06
+ * modified in 2014-11-17
+ * change: add a new function peak tone.
  */
 #include <math.h>
 #include <SPI_TGM.h>
@@ -284,6 +284,23 @@ void SPI_TGMClass::quick_sweep_exp_cosramp_5ms(uint16_t duration, uint16_t fq0, 
 	_QUICK_TONE.step_up_flag = STEP_FLAG_COS_5MS;
 	_QUICK_TONE.step_down_flag = STEP_FLAG_COS_5MS;
 	_QUICK_TONE.sweep = SWEEP_EXP;
+	_write_tone(&_QUICK_TONE);
+	_set_empty_tone(&_QUICK_TONE);
+}
+
+
+void SPI_TGMClass::quick_sweep_peak_cosramp_5ms(uint16_t duration, uint16_t fq0, uint16_t fq1, uint16_t fq2, byte vol){
+	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
+	_QUICK_TONE.duration = duration;
+	_QUICK_TONE.frequency0 = fq0;
+	_QUICK_TONE.frequency1 = fq1;
+	_QUICK_TONE.frequency2 = fq2;
+	// _QUICK_TONE.sweep_base = base;
+	_QUICK_TONE.volume_mode = VOLUME_ON;
+	_QUICK_TONE.volume = vol;
+	_QUICK_TONE.step_up_flag = STEP_FLAG_COS_5MS;
+	_QUICK_TONE.step_down_flag = STEP_FLAG_COS_5MS;
+	_QUICK_TONE.sweep = SWEEP_PEAK;
 	_write_tone(&_QUICK_TONE);
 	_set_empty_tone(&_QUICK_TONE);
 }

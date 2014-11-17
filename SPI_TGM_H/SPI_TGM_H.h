@@ -48,6 +48,7 @@
 #define SWEEP_NOISE_GAUSS2 7
 #define SWEEP_NOISE_GAUSS3 8
 #define SWEEP_CHORD 9
+#define SWEEP_PEAK 10
 #define SWEEP_ARRAY_ADDR 300
 #define PREP_OFF 0
 #define PREP_ON 1
@@ -171,6 +172,7 @@ public:
 	// void sweep_tone(uint16_t fq0, uint16_t fq1, uint16_t _time, byte vol);
 	void quick_sweep_linear_cosramp_5ms(uint16_t duration, uint16_t fq0, uint16_t fq1, byte vol);
 	void quick_sweep_exp_cosramp_5ms(uint16_t duration, uint16_t fq0, uint16_t fq1, byte vol);
+	void quick_sweep_peak_cosramp_5ms(uint16_t duration, uint16_t fq0, uint16_t fq1, uint16_t fq2, byte vol);
 	void quick_noise_cosramp_5ms(uint16_t duration, uint16_t fq0, uint16_t fq1, byte vol, byte mode);
 	void quick_chord_cosramp_5ms(uint16_t duration, uint16_t * fq, uint16_t fq_num, byte vol);
 };
