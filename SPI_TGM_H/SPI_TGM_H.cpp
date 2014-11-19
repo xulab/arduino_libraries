@@ -1,7 +1,6 @@
-/* version 05
- * SPI_TGM_H
- * modified in 2014-06-11
- * change: reprogram for new cache board
+/* version 06
+ * modified in 2014-11-17
+ * change: add a new function peak tone.
  */
 #include <math.h>
 #include <SPI_TGM_H.h>
