@@ -6,4 +6,6 @@
 !Git_Bash.lnk
 !CACHE/*
 !Pulse/*
+!Pulse/*
+!TWO_PHASE_STEP_MOTOR/*
 !.gitignore
