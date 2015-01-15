@@ -4,12 +4,13 @@
 #include <Wire.h>
 
 
-byte _year = 14;
-byte _month = 6;
-byte _date = 16;
-byte _day = 2;
-byte _hour =18;
-byte _minute = 45;
+#define SPEAKER 7
+byte _year = 15;
+byte _month = 1;
+byte _date = 7;
+byte _day = 4;
+byte _hour =12;
+byte _minute = 15;
 byte _sec = 50;
 
 
@@ -17,14 +18,15 @@ void setup()
 {
 Serial.begin(9600);
 	RCM.init();
-
-    // RCM.setSecond(_sec);//Set the second 
-    // RCM.setMinute(_minute);//Set the minute 
-    // RCM.setHour(_hour);  //Set the hour 
-    // RCM.setDoW(_day);    //Set the day of the week
-    // RCM.setDate(_date);  //Set the date of the month
-    // RCM.setMonth(_month);  //Set the month of the year
-    // RCM.setYear(_year);  //Set the year (Last two digits of the year)
+  pinMode(SPEAKER, OUTPUT);
+   digitalWrite(SPEAKER, LOW); 
+ //    RCM.setSecond(_sec);//Set the second 
+ //    RCM.setMinute(_minute);//Set the minute 
+ //    RCM.setHour(_hour);  //Set the hour 
+ //    RCM.setDoW(_day);    //Set the day of the week
+ //    RCM.setDate(_date);  //Set the date of the month
+ //    RCM.setMonth(_month);  //Set the month of the year
+ //    RCM.setYear(_year);  //Set the year (Last two digits of the year)
 	// // Start the serial interface
 
 }
