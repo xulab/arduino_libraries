@@ -310,32 +310,34 @@ uint32_t sweep_fq1 = 0;
 uint32_t sweep_fq2 = 0;
 byte sweep_mode = SWEEP_OFF;
 
-
 const uint16_t vol_step_isi_5ms_cos[] = {
 		//0.0625us
-		17115, 6857, 5105, 4174, 3565,
-		3123,  2781, 2505, 2276, 2082,
-		1913,  1766, 1635, 1518, 1413,
-		1317, 1230, 1150, 1077, 1009,
-		947, 889, 835, 785, 738,
-		694, 653, 615, 579, 546,
-		514, 485, 457, 431, 406,
-		383, 361, 341, 322, 303,
-		286, 270, 255, 241, 441,
-		393, 350, 311, 278, 247};
+		17115,6858,5105,4174,3565,
+		3123,2781,2505,2276,2082,
+		1914,1765,1636,1518,1413,
+		1317,1230,1150,1077,1009,
+		947,889,835,785,738,
+		694,653,616,579,546,
+		514,485,457,431,406,
+		383,362,341,321,304,
+		286,270,255,467,417,
+		371,330,294,263,341,
+		286,242,263,254,253,
+		254,241,241};
 
 const byte vol_step_val_5ms_cos[] = {
-		1, 2, 3, 4, 5,
-		6, 7, 8, 9, 10,
-		11, 12, 13, 14, 15,
-		16, 17, 18, 19, 20,
-		21, 22, 23, 24, 25,
-		26, 27, 28, 29, 30,
-		31, 32, 33, 34, 35,
-		36, 37, 38, 39, 40,
-		41, 42, 43, 44, 46,
-		48, 50, 52, 54, 56};
-
+		1,2,3,4,5,
+		6,7,8,9,10,
+		11,12,13,14,15,
+		16,17,18,19,20,
+		21,22,23,24,25,
+		26,27,28,29,30,
+		31,32,33,34,35,
+		36,37,38,39,40,
+		41,42,43,45,47,
+		49,51,53,55,58,
+		61,64,68,73,80,
+		92,142,255};
 
 inline static void timer1_init(){
 	TCCR0B = 0;// close timer0
@@ -892,19 +894,14 @@ void SPI_TGMClass::read_tone(){
 
 void SPI_TGMClass::set_tone(){
 	if (TONE_FLAG_ON == tone.tone_flag){
-		if(VOLUME_ON == tone.volume_mode){
-			_target_vol = tone.volume;
-		}else{
-			_target_vol = INIT_VOL;
-		}
-
+		_target_vol = tone.volume;
 		sweep_mode = tone.sweep;
 		sweep_fq0 = tone.frequency0;
 		sweep_fq1 = tone.frequency1;
 		sweep_fq2 = tone.frequency2;
 		memcpy((void* )chord_fq_array, &(tone.frequency0), sizeof(tone.frequency0)*tone.chord_num);
 		chord_fq_num = tone.chord_num;
-		_set_vol(0);
+		// _set_vol(0);
 
 		switch(tone.sweep){
 			case SWEEP_OFF:
@@ -955,11 +952,14 @@ void SPI_TGMClass::set_tone(){
 			break;
 		}
 
-		_set_vol(_target_vol);
+		if(VOLUME_ON == tone.volume_mode){
+			_set_vol(_target_vol);
+		}
 
 		switch(tone.sweep){
 			case SWEEP_OFF:
-			delay_ms(tone.duration);
+		if(tone.duration!=0)
+			{delay_ms(tone.duration);}
 			break;
 
 			case SWEEP_LINEAR:
@@ -1004,8 +1004,13 @@ void SPI_TGMClass::set_tone(){
 			step_vol_down(_target_vol);
 			break;
 		}
-		_set_vol(0);
-		_set_fq(0);
+
+		if(tone.duration!=0)
+		{
+			_set_vol(0);
+			_set_fq(0);
+		}
+
 		_erase_tone();
 	}
 }

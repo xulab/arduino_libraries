@@ -147,6 +147,10 @@ public:
 	void quick_sweep_exp_cosramp_5ms(uint16_t duration, uint16_t fq0, uint16_t fq1, byte vol);
 	void quick_noise_cosramp_5ms(uint16_t duration, uint16_t fq0, uint16_t fq1, byte vol, byte mode);
 	void quick_chord_cosramp_5ms(uint16_t duration, uint16_t * fq, uint16_t fq_num, byte vol);
+	void tone_vol_rampup(uint16_t frequency, byte vol);
+	void tone_vol_rampdown(uint16_t frequency, byte vol);
+	void set_tone_fq(uint16_t frequency);
+	void set_tone_fq_vol(uint16_t frequency, byte vol);
 };
 
 extern SPI_TGMClass SPI_TGM;

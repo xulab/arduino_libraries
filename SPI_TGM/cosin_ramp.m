@@ -1,8 +1,8 @@
-a=0:-0.5:-70;
+a=0:-0.5:-1000;
 b=db2mag(a);
-c=acos(b)/pi*2*5;
+c=acos(b)/pi*2;
 d = [];
-for i = 1:140
+for i = 1:2000
     d(i) = c(i+1) - c(i);
 end
 d = d*1000;
