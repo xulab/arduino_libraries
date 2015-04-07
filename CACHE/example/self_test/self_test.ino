@@ -32,7 +32,6 @@ void setup()
 	Serial.println(str1);
 	Serial.println(str2);
 	Serial.println(str3);
-
 }
 
 // The loop function is called in an endless loop

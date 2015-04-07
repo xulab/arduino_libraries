@@ -5,8 +5,11 @@
 #include <math.h>
 #include <SPI_TGM.h>
 #include <SPI.h>
+#include <CACHE.h>
 #ifdef watchdog
 #include <avr/wdt.h>
+// #include "CACHE.h"
+
 #endif
 
 
@@ -30,59 +33,69 @@
 #define Mega2560_MO 51
 #define Mega2560_MI 50
 #define Mega2560_REQ 47 
-#define Mega2560_H_BUSY 48 
-#define Mega2560_G_BUSY 49 
+#define Mega2560_PER 48 
+#define Mega2560_INFO 49 
+#define Mega2560_WR 46 
 
-inline static void _SPI_INIT(){
-	pinMode(Mega2560_CS, OUTPUT);
-	pinMode(Mega2560_SCK , OUTPUT);
-	pinMode(Mega2560_MO , OUTPUT);
-	pinMode(Mega2560_MI , INPUT);
-	pinMode(Mega2560_REQ , OUTPUT);
-	pinMode(Mega2560_H_BUSY, INPUT);
-	pinMode(Mega2560_G_BUSY, INPUT);
+inline static void _SPI_INIT(){	
+	CACHE.INFO = 49;
+	CACHE.REQ = 47;
+	CACHE.WR = 46;
+	CACHE.PER = 48;
+	CACHE.init(MEGA2560);
+	// pinMode(Mega2560_CS, OUTPUT);
+	// pinMode(Mega2560_SCK , OUTPUT);
+	// pinMode(Mega2560_MO , OUTPUT);
+	// pinMode(Mega2560_MI , INPUT);
+	// pinMode(Mega2560_REQ , OUTPUT);
+	// pinMode(Mega2560_WR , OUTPUT);
+	// pinMode(Mega2560_PER, INPUT);
+	// pinMode(Mega2560_INFO, INPUT);
 
-	digitalWrite(Mega2560_CS, HIGH);
-	digitalWrite(Mega2560_SCK, LOW);
-	digitalWrite(Mega2560_MO , LOW);
-	digitalWrite(Mega2560_REQ , LOW);
+	// digitalWrite(Mega2560_CS, HIGH);
+	// digitalWrite(Mega2560_SCK, LOW);
+	// digitalWrite(Mega2560_MO , LOW);
+	// digitalWrite(Mega2560_REQ , LOW);
 }
 
 
-inline static void _REQ_REQUEST(){
-	digitalWrite(Mega2560_REQ, HIGH);
-}
+// inline static void _REQ_REQUEST(){
+// 	digitalWrite(Mega2560_WR, HIGH);
+// 	digitalWrite(Mega2560_REQ, HIGH);
+// }
 
-inline static void _REQ_RELEASE(){
-	digitalWrite(Mega2560_REQ, LOW);
-}
+// inline static void _REQ_RELEASE(){
+// 	// digitalWrite(Mega2560_REQ, LOW);
+// 	CACHE.release();
+// }
 
-inline static uint8_t _REQ_GET_H_BUSY(){
-	return digitalRead(Mega2560_H_BUSY);
-}
+// // inline static uint8_t _REQ_GET_H_BUSY(){
+// // 	return digitalRead(Mega2560_PER);
+// // }
 
-inline static uint8_t _REQ_GET_G_BUSY(){
-	return digitalRead(Mega2560_G_BUSY);
-}
+// // inline static uint8_t _REQ_GET_G_BUSY(){
+// // 	return digitalRead(Mega2560_INFO);
+// // }
 
-inline static void _GET_PERMISSION(){
-	_REQ_REQUEST();
-	NOP();
-	NOP();
-	while(LOW == _REQ_GET_H_BUSY());
-}
+// inline static void _GET_PERMISSION(){
+// 	// _REQ_REQUEST();
+// 	// NOP();
+// 	// NOP();
+// 	// while(LOW == _REQ_GET_H_BUSY());
+// 	CACHE.request();
+// }
 
-inline static void _23lc1024_SPI_begin(){
-	_GET_PERMISSION();
-	//SPI.begin();
-	digitalWrite(Mega2560_CS, LOW);
-}
+// inline static void _23lc1024_SPI_begin(){
+// 	_GET_PERMISSION();
+// 	//SPI.begin();
+// 	digitalWrite(Mega2560_CS, LOW);
+// }
 
-inline static void _23lc1024_SPI_end(){
-	digitalWrite(Mega2560_CS, HIGH);
-	//SPI.end();
-	_REQ_RELEASE();
-}
+// inline static void _23lc1024_SPI_end(){
+// 	digitalWrite(Mega2560_CS, HIGH);
+// 	//SPI.end();
+// 	_REQ_RELEASE();
+// }
 
 //inline static void _23lc1024_reset(){
 //	_SPI_REQUEST();
@@ -125,29 +138,29 @@ inline static void _23lc1024_SPI_end(){
 //	_23lc1024_SPI_end();
 //}
 
-inline static void _23lc1024_write(uint32_t addr, uint16_t size, char *data){
-	_23lc1024_SPI_begin();
-	SPI.transfer(wr_code);
-	SPI.transfer(addr>>16);
-	SPI.transfer(addr>>8);
-	SPI.transfer(addr);
-	for(uint16_t i = 0; i<size; i++){
-		SPI.transfer(data[i]);
-	}
-	_23lc1024_SPI_end();
-}
+// inline static void _23lc1024_write(uint32_t addr, uint16_t size, char *data){
+// 	_23lc1024_SPI_begin();
+// 	SPI.transfer(wr_code);
+// 	SPI.transfer(addr>>16);
+// 	SPI.transfer(addr>>8);
+// 	SPI.transfer(addr);
+// 	for(uint16_t i = 0; i<size; i++){
+// 		SPI.transfer(data[i]);
+// 	}
+// 	_23lc1024_SPI_end();
+// }
 
-inline static void _23lc1024_read(uint32_t addr, uint16_t size, char *data){
-	_23lc1024_SPI_begin();
-	SPI.transfer(read_code);
-	SPI.transfer(addr>>16);
-	SPI.transfer(addr>>8);
-	SPI.transfer(addr);
-	for(uint16_t i = 0; i < size; i++){
-		data[i] = SPI.transfer(0);
-	}
-	_23lc1024_SPI_end();
-}
+// inline static void _23lc1024_read(uint32_t addr, uint16_t size, char *data){
+// 	_23lc1024_SPI_begin();
+// 	SPI.transfer(read_code);
+// 	SPI.transfer(addr>>16);
+// 	SPI.transfer(addr>>8);
+// 	SPI.transfer(addr);
+// 	for(uint16_t i = 0; i < size; i++){
+// 		data[i] = SPI.transfer(0);
+// 	}
+// 	_23lc1024_SPI_end();
+// }
 /*-----------23LC1024-------------*/
 /*-----------23LC1024------------*/
 
@@ -184,31 +197,38 @@ void SPI_TGMClass::init(byte boardtype)
 
 
 inline void SPI_TGMClass::_read_info(TGMinfo* data){
-	_23lc1024_read(TGM_INFO_ADDR, sizeof(TGMinfo), (char*)data);
+	// _23lc1024_read(TGM_INFO_ADDR, sizeof(TGMinfo), (char*)data);
+	CACHE.q_read(TGM_INFO_ADDR, sizeof(TGMinfo), (char*)data);
 }
 
 inline void SPI_TGMClass::_write_info(TGMinfo* data){
-	_23lc1024_write(TGM_INFO_ADDR, sizeof(TGMinfo), (char*)data);
+	// _23lc1024_write(TGM_INFO_ADDR, sizeof(TGMinfo), (char*)data);
+	CACHE.q_write(TGM_INFO_ADDR, sizeof(TGMinfo), (char*)data);
 }
 
 inline void SPI_TGMClass::_read_error(TMGerror* data){
-	_23lc1024_read(ERROR_ADDR, sizeof(TMGerror), (char*)data);
+	// _23lc1024_read(ERROR_ADDR, sizeof(TMGerror), (char*)data);
+	CACHE.q_read(ERROR_ADDR, sizeof(TMGerror), (char*)data);
 }
 
 inline void SPI_TGMClass::_write_error(TMGerror* data){
-	_23lc1024_write(ERROR_ADDR, sizeof(TMGerror), (char*)data);
+	// _23lc1024_write(ERROR_ADDR, sizeof(TMGerror), (char*)data);
+	CACHE.q_write(ERROR_ADDR, sizeof(TMGerror), (char*)data);
 }
 
 inline void SPI_TGMClass::_read_tone(ton* data){
-	_23lc1024_read(TONE_ADDR, sizeof(ton), (char*)data);
+	// _23lc1024_read(TONE_ADDR, sizeof(ton), (char*)data);
+	CACHE.q_read(TONE_ADDR, sizeof(ton), (char*)data);
 }
 
 inline void SPI_TGMClass::_write_tone(ton * data){
-	_23lc1024_write(TONE_ADDR, sizeof(ton), (char*)data);
+	// _23lc1024_write(TONE_ADDR, sizeof(ton), (char*)data);
+	CACHE.q_write(TONE_ADDR, sizeof(ton), (char*)data);
 }
 
 inline void SPI_TGMClass::_erase_tone(){
-	_23lc1024_write(TONE_ADDR, sizeof(ton), (char*)&_EMPTY_TONE);
+	// _23lc1024_write(TONE_ADDR, sizeof(ton), (char*)&_EMPTY_TONE);
+	CACHE.q_write(TONE_ADDR, sizeof(ton), (char*)&_EMPTY_TONE);
 }
 
 inline void SPI_TGMClass::_set_empty_tone(ton* data){
@@ -217,13 +237,15 @@ inline void SPI_TGMClass::_set_empty_tone(ton* data){
 
 
 void SPI_TGMClass::write(uint32_t addr, uint16_t size, char *data){
-	_23lc1024_write(addr, size, data);
+	// _23lc1024_write(addr, size, data);
+	CACHE.q_write(addr, size, data);
 }
 
 
 
 void SPI_TGMClass::read(uint32_t addr, uint16_t size, char *data){
-	_23lc1024_read(addr, size, data);
+	// _23lc1024_read(addr, size, data);
+	CACHE.read(addr, size, data);
 }
 
 
