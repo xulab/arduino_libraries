@@ -317,7 +317,6 @@ void SPI_TGMClass::set_tone_fq_vol(uint16_t frequency, byte vol){
 	_QUICK_TONE.frequency0 = frequency;
 	_QUICK_TONE.volume_mode = VOLUME_ON;
 	_QUICK_TONE.volume = vol;
-	_QUICK_TONE.volume_mode = VOLUME_OFF;
 	_write_tone(&_QUICK_TONE);
 	_set_empty_tone(&_QUICK_TONE);
 }

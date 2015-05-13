@@ -36,18 +36,18 @@ void loop() {
 	// SPI_TGM.quick_tone_vol_cosramp_5ms(duration, fq0, vol);
 	// delay(duration + isi);
 
-	SPI_TGM.quick_tone_vol_cosramp_5ms(300, 50, vol);
-	delay(duration + isi);
+	// SPI_TGM.quick_tone_vol_cosramp_5ms(300, 50, vol);
+	// delay(duration + isi);
 
 	// SPI_TGM.quick_tone_vol_cosramp_5ms(100, 5000, vol);
 	// delay(duration + isi);
 
 	SPI_TGM.quick_tone_vol_cosramp_5ms(duration, fq1, 192);
 	delay(duration + isi);
-	SPI_TGM.quick_tone_vol_cosramp_5ms(duration, fq1, 160);
-	delay(duration + isi);
-	SPI_TGM.quick_tone_vol_cosramp_5ms(duration, fq1, 120);
-	delay(duration + isi);
+	// SPI_TGM.quick_tone_vol_cosramp_5ms(duration, fq1, 160);
+	// delay(duration + isi);
+	// SPI_TGM.quick_tone_vol_cosramp_5ms(duration, fq1, 120);
+	// delay(duration + isi);
 
 	// SPI_TGM.quick_tone_vol(duration, fq1, vol);
 	// delay(duration + isi);
