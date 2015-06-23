@@ -32,6 +32,10 @@
 
 	This function return immediately. 
 	It aims to shorten p1_sqr_wave and p1_pulse when you change you mind. 
+ 
+ * Caution 1: This program will terminate the timer of arduino. And it will cause	delay() delayMicroseconds() millis() and micros() don't work properly.
+ *
+ * Caution 2: There are some confilcts when using both "FAST_PWM" and "Pulse". So don't use these simultaneously.
 
 */
 #ifndef _PULSE_h

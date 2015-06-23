@@ -3,13 +3,13 @@
 #include <SPI_TGM.h>
 #include <CACHE.h>
 
-uint16_t fq0 = 10000;
-uint16_t fq1 = 20000; 
+uint16_t fq0 = 50;
+uint16_t fq1 = 1000; 
 // double base;
 int isi = 1000;
 int sweep_isi = 1;
-int duration = 10;
-byte vol = 192; 
+int duration = 2000;
+byte vol = 1; 
 
 
 uint16_t chord[]={2000,3000,4000};
@@ -42,8 +42,11 @@ void loop() {
 	// SPI_TGM.quick_tone_vol_cosramp_5ms(100, 5000, vol);
 	// delay(duration + isi);
 
-	SPI_TGM.quick_tone_vol_cosramp_5ms(duration, fq1, 192);
-	delay(duration + isi);
+	SPI_TGM.tone_vol_rampup(fq1, vol);
+	while(1);
+	// SPI_TGM.quick_tone_vol_cosramp_5ms(duration, fq0, vol);
+	// delay(duration + isi);
+
 	// SPI_TGM.quick_tone_vol_cosramp_5ms(duration, fq1, 160);
 	// delay(duration + isi);
 	// SPI_TGM.quick_tone_vol_cosramp_5ms(duration, fq1, 120);
