@@ -16,6 +16,8 @@
 #define TRG_OFF 0
 
 
+#if defined __AVR_ATmega328P__
+
 /***********p1***************/
 /***********p1***************/
 int t1_PIN_;
@@ -156,6 +158,153 @@ void PULSE_Class::p1_cancel()
 	digitalWrite(t1_PIN_, t1_TRG_OFF_VAL);
 	t1_init_global();
 }
+
+
+
+#elif defined __AVR_ATmega2560__
+
+/***********p1***************/
+/***********p1***************/
+int t1_PIN_;
+int t1_TRG_ON_VAL;
+int t1_TRG_OFF_VAL;
+unsigned long t1_ON_DUR;
+unsigned long t1_OFF_DUR;
+unsigned long t1_PHASE_COUT_NUM;
+unsigned long t1_DUR_COUT_NUM;
+unsigned long t1_CUR_STATUS;
+
+
+inline static void t1_init(){
+	TCCR1B &= ~PRE_SCALE_MASK; //close clock source
+	TCCR1A = 0;
+	TCCR1B |= _BV(WGM12); //CTC mode, TOP: OCR1A;
+	TCCR1C = 0;
+	TCNT1H = 0; //set TCNT1 to 0
+	TCNT1L = 0; //set TCNT1 to 0
+	OCR1AH = 0;
+	OCR1AL = 0;
+	TIMSK1 |= _BV(OCIE1A); // Output Compare A Match Interrupt Enable
+	sei(); //enable global interrupter
+}
+
+
+inline static void _t1_stop(){
+	TCCR1B &= ~PRE_SCALE_MASK;
+	OCR1AH = 0;
+	OCR1AL = 0;
+	TCNT1H = 0; //set TCNT1 to 0
+	TCNT1L = 0; //set TCNT1 to 0
+}
+
+inline void _t1_start(byte pre_scale){
+	TCNT1H = 0; //set TCNT1 to 0
+	TCNT1L = 0; //set TCNT1 to 0
+	TCCR1B |= pre_scale; //set prescale
+}
+
+inline static void _set_t1_isi(uint16_t isi){
+	OCR1AH = isi>>8;
+	OCR1AL = isi;
+}
+
+void t1_init_global()
+{
+	t1_ON_DUR = 0;
+	t1_OFF_DUR = 0;
+	t1_PHASE_COUT_NUM = 0;
+	t1_DUR_COUT_NUM = 0;
+}
+
+void t1_operator ()
+{
+	t1_DUR_COUT_NUM--;
+	if (t1_DUR_COUT_NUM > 0)
+	{
+		if (t1_PHASE_COUT_NUM > 0)
+		{
+			t1_PHASE_COUT_NUM--;
+		}
+		else
+		{
+			if ((t1_CUR_STATUS == TRG_ON)&&(t1_OFF_DUR > 0))
+			{
+				t1_PHASE_COUT_NUM = t1_OFF_DUR;
+				t1_CUR_STATUS = TRG_OFF;
+				digitalWrite(t1_PIN_, t1_TRG_OFF_VAL);
+			}
+			else if (t1_ON_DUR > 0)
+			{
+				t1_PHASE_COUT_NUM = t1_ON_DUR;
+				t1_CUR_STATUS = TRG_ON;
+				digitalWrite(t1_PIN_, t1_TRG_ON_VAL);
+			}
+		}
+	}
+	else
+	{
+		_t1_stop();
+		digitalWrite(t1_PIN_, t1_TRG_OFF_VAL);
+		t1_init_global();
+	}
+}
+
+ISR(TIMER1_COMPA_vect)
+{
+	t1_operator();
+}
+
+
+
+
+void PULSE_Class::p1_sqr_wave(int pin, unsigned long duration, float fq, unsigned long p_width, int mode)
+{
+	float CYCLE = 1000/fq;
+
+	if (duration == 0) return;
+
+	t1_PIN_ = pin;
+	t1_DUR_COUT_NUM = duration * CTC_FACTOR;
+
+	t1_ON_DUR = (p_width > 0) ? (p_width * CTC_FACTOR-1) : 0;
+	t1_OFF_DUR = (CYCLE > p_width) ? ((CYCLE - p_width) * CTC_FACTOR-1) : 0;
+
+	t1_PHASE_COUT_NUM = t1_ON_DUR;
+	t1_CUR_STATUS = TRG_ON;
+
+	if(mode == TRG_L)
+	{
+		t1_TRG_ON_VAL = LOW;
+		t1_TRG_OFF_VAL = HIGH;
+	}
+	else
+	{
+		t1_TRG_ON_VAL = HIGH;
+		t1_TRG_OFF_VAL = LOW;
+	}
+
+	digitalWrite(t1_PIN_, t1_TRG_ON_VAL);
+
+	_set_t1_isi(CTC_ISI);
+
+	_t1_start(PRE_SCALE_64DIV);
+
+}
+
+void PULSE_Class::p1_pulse(int pin, uint32_t duration, int mode)
+{
+	float fq = (float)1000/2/(float)duration;
+	p1_sqr_wave(pin, duration, fq, duration, mode);
+}
+
+void PULSE_Class::p1_cancel()
+{
+	_t1_stop();
+	digitalWrite(t1_PIN_, t1_TRG_OFF_VAL);
+	t1_init_global();
+}
+
+
 
 /***********p2***************/
 /***********p2***************/
@@ -582,15 +731,33 @@ void PULSE_Class::p4_cancel()
 	t5_init_global();
 }
 
+#else 
+#error "FAST_PWM only suit for Mage2560, UNO(mega328) and NANO(mega328)."
+#endif
+
+
 
 /***************init********************/
 /***************init********************/
 void PULSE_Class::init()
 {
+
+#if defined __AVR_ATmega328P__
+
+	t1_init();
+
+#elif defined __AVR_ATmega2560__
+
 	t1_init();
 	t3_init();
 	t4_init();
 	t5_init();
+
+#else 
+#error "FAST_PWM only suit for Mage2560, UNO(mega328) and NANO(mega328)."
+#endif
+
+
 }
 
 
