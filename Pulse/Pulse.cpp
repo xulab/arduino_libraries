@@ -1,6 +1,7 @@
-/* version 01
+/* version 02
  * create in 20141119
- * This labariry can generate 4 parallel serial triggers.
+ * Modified in 20150623
+ * This labariry can generate 4 parallel serial triggers on ATmega2560 or 1 parallel serial triggers on ATmega328p(UNO or NANO).
  */
 #include "Pulse.h"
 

@@ -9,11 +9,11 @@ uint8_t t_TCCRnB;
 
 #if defined __AVR_ATmega328P__
 /* PWM pin defination on ATmega328p :
- *	pin		PWM source		physical pin
- *	3		OC2B			PD3
- *	9		OC1A			PB1
- *	10		OC1B			PB2
- *	11		OC2A			PB3
+ *	pin		PWM source		physical pin	confiction with pulse
+ *	3		OC2B			PD3				none
+ *	9		OC1A			PB1				p1
+ *	10		OC1B			PB2				p1
+ *	11		OC2A			PB3				none
  *
  */
 
@@ -147,22 +147,22 @@ void FAST_PWM_Class::write(int pin, uint8_t val)
 
 #elif defined __AVR_ATmega2560__
 
-/* PWM pin defination on ATmega328p :
- *	pin		PWM source		physical pin
- *	2		OC3B			PE4
- *	3		OC3C			PE5
- *	5		OC3A			PE3
- *	6		OC4A			PH3
- *	7		OC4B			PH4
- *	8		OC4C			PH5
- *	9		OC2B			PH6
- *	10		OC2A			PB4
- *	11		OC1A			PB5
- *	12		OC1B			PB6
- *	13		OC1C			PB6
- *	44		OC5C			PL5
- *	45		OC5B			PL4
- *	46		OC5A			PL3
+/* PWM pin defination on ATmega2560 :
+ *	pin		PWM source		physical pin	confliction with pulse
+ *	2		OC3B			PE4				p2
+ *	3		OC3C			PE5				p2
+ *	5		OC3A			PE3				p2
+ *	6		OC4A			PH3				p3
+ *	7		OC4B			PH4				p3
+ *	8		OC4C			PH5				p3
+ *	9		OC2B			PH6				none
+ *	10		OC2A			PB4				none
+ *	11		OC1A			PB5				p1
+ *	12		OC1B			PB6				p1
+ *	13		OC1C			PB6				p1
+ *	44		OC5C			PL5				p4
+ *	45		OC5B			PL4				p4
+ *	46		OC5A			PL3				p4
  *
  */
 
