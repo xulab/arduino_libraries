@@ -1,8 +1,8 @@
 /* version 02
- * create in 20141119
- * Modified in 20150623
- * This labariry can generate 4 parallel serial triggers on ATmega2560 or 1 parallel serial triggers on ATmega328p(UNO or NANO).
- */
+* create in 20141119
+* Modified in 20150623
+* This labariry can generate 4 parallel serial triggers on ATmega2560 or 1 parallel serial triggers on ATmega328p(UNO or NANO).
+*/
 #include "Pulse.h"
 
 // #define _PULSE_INTERVAL_ 1000 //change fq interval(us)
@@ -14,6 +14,11 @@
 
 #define TRG_ON 1
 #define TRG_OFF 0
+
+#define _SET(var,bit) var |= _BV(bit)
+#define _CLEAR(var,bit) var &= ~_BV(bit)
+uint8_t t_TCCRnA;
+uint8_t t_TCCRnB;
 
 
 #if defined __AVR_ATmega328P__
@@ -31,16 +36,15 @@ unsigned long t1_CUR_STATUS;
 
 
 inline static void t1_init(){
-	TCCR1B &= ~PRE_SCALE_MASK; //close clock source
+	t_TCCRnB = TCCR1B;
+	_CLEAR(t_TCCRnB, CS10); _CLEAR(t_TCCRnB, CS11); _CLEAR(t_TCCRnB, CS12); //Close clock source.
+	_SET(t_TCCRnB, WGM12); _CLEAR(t_TCCRnB, WGM13); //CTC mode, TOP: OCR1A;
+	TCCR1B = t_TCCRnB;
 	TCCR1A = 0;
-	TCCR1B |= _BV(WGM12); //CTC mode, TOP: OCR1A;
 	TCCR1C = 0;
 	TCNT1H = 0; //set TCNT1 to 0
 	TCNT1L = 0; //set TCNT1 to 0
-	OCR1AH = 0;
-	OCR1AL = 0;
 	TIMSK1 |= _BV(OCIE1A); // Output Compare A Match Interrupt Enable
-	sei(); //enable global interrupter
 }
 
 
@@ -53,13 +57,12 @@ inline static void _t1_stop(){
 }
 
 inline void _t1_start(byte pre_scale){
-	TCNT1H = 0; //set TCNT1 to 0
-	TCNT1L = 0; //set TCNT1 to 0
+	t1_init();
 	TCCR1B |= pre_scale; //set prescale
 }
 
 inline static void _set_t1_isi(uint16_t isi){
-	OCR1AH = isi>>8;
+	OCR1AH = isi >> 8;
 	OCR1AL = isi;
 }
 
@@ -71,7 +74,7 @@ void t1_init_global()
 	t1_DUR_COUT_NUM = 0;
 }
 
-void t1_operator ()
+void t1_operator()
 {
 	t1_DUR_COUT_NUM--;
 	if (t1_DUR_COUT_NUM > 0)
@@ -82,7 +85,7 @@ void t1_operator ()
 		}
 		else
 		{
-			if ((t1_CUR_STATUS == TRG_ON)&&(t1_OFF_DUR > 0))
+			if ((t1_CUR_STATUS == TRG_ON) && (t1_OFF_DUR > 0))
 			{
 				t1_PHASE_COUT_NUM = t1_OFF_DUR;
 				t1_CUR_STATUS = TRG_OFF;
@@ -114,20 +117,20 @@ ISR(TIMER1_COMPA_vect)
 
 void PULSE_Class::p1_sqr_wave(int pin, unsigned long duration, float fq, unsigned long p_width, int mode)
 {
-	float CYCLE = 1000/fq;
+	float CYCLE = 1000 / fq;
 
 	if (duration == 0) return;
 
 	t1_PIN_ = pin;
 	t1_DUR_COUT_NUM = duration * CTC_FACTOR;
 
-	t1_ON_DUR = (p_width > 0) ? (p_width * CTC_FACTOR-1) : 0;
-	t1_OFF_DUR = (CYCLE > p_width) ? ((CYCLE - p_width) * CTC_FACTOR-1) : 0;
+	t1_ON_DUR = (p_width > 0) ? (p_width * CTC_FACTOR - 1) : 0;
+	t1_OFF_DUR = (CYCLE > p_width) ? ((CYCLE - p_width) * CTC_FACTOR - 1) : 0;
 
 	t1_PHASE_COUT_NUM = t1_ON_DUR;
 	t1_CUR_STATUS = TRG_ON;
 
-	if(mode == TRG_L)
+	if (mode == TRG_L)
 	{
 		t1_TRG_ON_VAL = LOW;
 		t1_TRG_OFF_VAL = HIGH;
@@ -148,7 +151,7 @@ void PULSE_Class::p1_sqr_wave(int pin, unsigned long duration, float fq, unsigne
 
 void PULSE_Class::p1_pulse(int pin, uint32_t duration, int mode)
 {
-	float fq = (float)1000/2/(float)duration;
+	float fq = (float)1000 / 2 / (float)duration;
 	p1_sqr_wave(pin, duration, fq, duration, mode);
 }
 
@@ -176,16 +179,15 @@ unsigned long t1_CUR_STATUS;
 
 
 inline static void t1_init(){
-	TCCR1B &= ~PRE_SCALE_MASK; //close clock source
+	t_TCCRnB = TCCR1B;
+	_CLEAR(t_TCCRnB, CS10); _CLEAR(t_TCCRnB, CS11); _CLEAR(t_TCCRnB, CS12); //Close clock source.
+	_SET(t_TCCRnB, WGM12); _CLEAR(t_TCCRnB, WGM13); //CTC mode, TOP: OCR1A;
+	TCCR1B = t_TCCRnB;
 	TCCR1A = 0;
-	TCCR1B |= _BV(WGM12); //CTC mode, TOP: OCR1A;
 	TCCR1C = 0;
 	TCNT1H = 0; //set TCNT1 to 0
 	TCNT1L = 0; //set TCNT1 to 0
-	OCR1AH = 0;
-	OCR1AL = 0;
 	TIMSK1 |= _BV(OCIE1A); // Output Compare A Match Interrupt Enable
-	sei(); //enable global interrupter
 }
 
 
@@ -198,13 +200,12 @@ inline static void _t1_stop(){
 }
 
 inline void _t1_start(byte pre_scale){
-	TCNT1H = 0; //set TCNT1 to 0
-	TCNT1L = 0; //set TCNT1 to 0
+	t1_init();
 	TCCR1B |= pre_scale; //set prescale
 }
 
 inline static void _set_t1_isi(uint16_t isi){
-	OCR1AH = isi>>8;
+	OCR1AH = isi >> 8;
 	OCR1AL = isi;
 }
 
@@ -216,7 +217,7 @@ void t1_init_global()
 	t1_DUR_COUT_NUM = 0;
 }
 
-void t1_operator ()
+void t1_operator()
 {
 	t1_DUR_COUT_NUM--;
 	if (t1_DUR_COUT_NUM > 0)
@@ -227,7 +228,7 @@ void t1_operator ()
 		}
 		else
 		{
-			if ((t1_CUR_STATUS == TRG_ON)&&(t1_OFF_DUR > 0))
+			if ((t1_CUR_STATUS == TRG_ON) && (t1_OFF_DUR > 0))
 			{
 				t1_PHASE_COUT_NUM = t1_OFF_DUR;
 				t1_CUR_STATUS = TRG_OFF;
@@ -259,20 +260,20 @@ ISR(TIMER1_COMPA_vect)
 
 void PULSE_Class::p1_sqr_wave(int pin, unsigned long duration, float fq, unsigned long p_width, int mode)
 {
-	float CYCLE = 1000/fq;
+	float CYCLE = 1000 / fq;
 
 	if (duration == 0) return;
 
 	t1_PIN_ = pin;
 	t1_DUR_COUT_NUM = duration * CTC_FACTOR;
 
-	t1_ON_DUR = (p_width > 0) ? (p_width * CTC_FACTOR-1) : 0;
-	t1_OFF_DUR = (CYCLE > p_width) ? ((CYCLE - p_width) * CTC_FACTOR-1) : 0;
+	t1_ON_DUR = (p_width > 0) ? (p_width * CTC_FACTOR - 1) : 0;
+	t1_OFF_DUR = (CYCLE > p_width) ? ((CYCLE - p_width) * CTC_FACTOR - 1) : 0;
 
 	t1_PHASE_COUT_NUM = t1_ON_DUR;
 	t1_CUR_STATUS = TRG_ON;
 
-	if(mode == TRG_L)
+	if (mode == TRG_L)
 	{
 		t1_TRG_ON_VAL = LOW;
 		t1_TRG_OFF_VAL = HIGH;
@@ -293,7 +294,7 @@ void PULSE_Class::p1_sqr_wave(int pin, unsigned long duration, float fq, unsigne
 
 void PULSE_Class::p1_pulse(int pin, uint32_t duration, int mode)
 {
-	float fq = (float)1000/2/(float)duration;
+	float fq = (float)1000 / 2 / (float)duration;
 	p1_sqr_wave(pin, duration, fq, duration, mode);
 }
 
@@ -319,16 +320,15 @@ unsigned long t3_CUR_STATUS;
 
 
 inline static void t3_init(){
-	TCCR3B &= ~PRE_SCALE_MASK; //close clock source
+	t_TCCRnB = TCCR3B;
+	_CLEAR(t_TCCRnB, CS30); _CLEAR(t_TCCRnB, CS31); _CLEAR(t_TCCRnB, CS32); //Close clock source.
+	_SET(t_TCCRnB, WGM32); _CLEAR(t_TCCRnB, WGM33); //CTC mode, TOP: OCR1A;
+	TCCR3B = t_TCCRnB;
 	TCCR3A = 0;
-	TCCR3B |= _BV(WGM12); //CTC mode, TOP: OCR1A;
 	TCCR3C = 0;
 	TCNT3H = 0; //set TCNT3 to 0
 	TCNT3L = 0; //set TCNT3 to 0
-	OCR3AH = 0;
-	OCR3AL = 0;
 	TIMSK3 |= _BV(OCIE3A); // Output Compare A Match Interrupt Enable
-	sei(); //enable global interrupter
 }
 
 
@@ -341,13 +341,12 @@ inline static void _t3_stop(){
 }
 
 inline void _t3_start(byte pre_scale){
-	TCNT3H = 0; //set TCNT3 to 0
-	TCNT3L = 0; //set TCNT3 to 0
+	t3_init();
 	TCCR3B |= pre_scale; //set prescale
 }
 
 inline static void _set_t3_isi(uint16_t isi){
-	OCR3AH = isi>>8;
+	OCR3AH = isi >> 8;
 	OCR3AL = isi;
 }
 
@@ -359,7 +358,7 @@ void t3_init_global()
 	t3_DUR_COUT_NUM = 0;
 }
 
-void t3_operator ()
+void t3_operator()
 {
 	t3_DUR_COUT_NUM--;
 	if (t3_DUR_COUT_NUM > 0)
@@ -370,7 +369,7 @@ void t3_operator ()
 		}
 		else
 		{
-			if ((t3_CUR_STATUS == TRG_ON)&&(t3_OFF_DUR > 0))
+			if ((t3_CUR_STATUS == TRG_ON) && (t3_OFF_DUR > 0))
 			{
 				t3_PHASE_COUT_NUM = t3_OFF_DUR;
 				t3_CUR_STATUS = TRG_OFF;
@@ -402,20 +401,20 @@ ISR(TIMER3_COMPA_vect)
 
 void PULSE_Class::p2_sqr_wave(int pin, unsigned long duration, float fq, unsigned long p_width, int mode)
 {
-	float CYCLE = 1000/fq;
+	float CYCLE = 1000 / fq;
 
 	if (duration == 0) return;
 
 	t3_PIN_ = pin;
 	t3_DUR_COUT_NUM = duration * CTC_FACTOR;
 
-	t3_ON_DUR = (p_width > 0) ? (p_width * CTC_FACTOR-1) : 0;
-	t3_OFF_DUR = (CYCLE > p_width) ? ((CYCLE - p_width) * CTC_FACTOR-1) : 0;
+	t3_ON_DUR = (p_width > 0) ? (p_width * CTC_FACTOR - 1) : 0;
+	t3_OFF_DUR = (CYCLE > p_width) ? ((CYCLE - p_width) * CTC_FACTOR - 1) : 0;
 
 	t3_PHASE_COUT_NUM = t3_ON_DUR;
 	t3_CUR_STATUS = TRG_ON;
 
-	if(mode == TRG_L)
+	if (mode == TRG_L)
 	{
 		t3_TRG_ON_VAL = LOW;
 		t3_TRG_OFF_VAL = HIGH;
@@ -436,7 +435,7 @@ void PULSE_Class::p2_sqr_wave(int pin, unsigned long duration, float fq, unsigne
 
 void PULSE_Class::p2_pulse(int pin, uint32_t duration, int mode)
 {
-	float fq = (float)1000/2/(float)duration;
+	float fq = (float)1000 / 2 / (float)duration;
 	p2_sqr_wave(pin, duration, fq, duration, mode);
 }
 
@@ -461,16 +460,15 @@ unsigned long t4_CUR_STATUS;
 
 
 inline static void t4_init(){
-	TCCR4B &= ~PRE_SCALE_MASK; //close clock source
+	t_TCCRnB = TCCR4B;
+	_CLEAR(t_TCCRnB, CS40); _CLEAR(t_TCCRnB, CS41); _CLEAR(t_TCCRnB, CS42); //Close clock source.
+	_SET(t_TCCRnB, WGM42); _CLEAR(t_TCCRnB, WGM43); //CTC mode, TOP: OCR1A;
+	TCCR4B = t_TCCRnB;
 	TCCR4A = 0;
-	TCCR4B |= _BV(WGM12); //CTC mode, TOP: OCR1A;
 	TCCR4C = 0;
 	TCNT4H = 0; //set TCNT4 to 0
 	TCNT4L = 0; //set TCNT4 to 0
-	OCR4AH = 0;
-	OCR4AL = 0;
 	TIMSK4 |= _BV(OCIE4A); // Output Compare A Match Interrupt Enable
-	sei(); //enable global interrupter
 }
 
 
@@ -483,13 +481,12 @@ inline static void _t4_stop(){
 }
 
 inline void _t4_start(byte pre_scale){
-	TCNT4H = 0; //set TCNT4 to 0
-	TCNT4L = 0; //set TCNT4 to 0
+	t4_init();
 	TCCR4B |= pre_scale; //set prescale
 }
 
 inline static void _set_t4_isi(uint16_t isi){
-	OCR4AH = isi>>8;
+	OCR4AH = isi >> 8;
 	OCR4AL = isi;
 }
 
@@ -501,7 +498,7 @@ void t4_init_global()
 	t4_DUR_COUT_NUM = 0;
 }
 
-void t4_operator ()
+void t4_operator()
 {
 	t4_DUR_COUT_NUM--;
 	if (t4_DUR_COUT_NUM > 0)
@@ -512,7 +509,7 @@ void t4_operator ()
 		}
 		else
 		{
-			if ((t4_CUR_STATUS == TRG_ON)&&(t4_OFF_DUR > 0))
+			if ((t4_CUR_STATUS == TRG_ON) && (t4_OFF_DUR > 0))
 			{
 				t4_PHASE_COUT_NUM = t4_OFF_DUR;
 				t4_CUR_STATUS = TRG_OFF;
@@ -544,20 +541,20 @@ ISR(TIMER4_COMPA_vect)
 
 void PULSE_Class::p3_sqr_wave(int pin, unsigned long duration, float fq, unsigned long p_width, int mode)
 {
-	float CYCLE = 1000/fq;
+	float CYCLE = 1000 / fq;
 
 	if (duration == 0) return;
 
 	t4_PIN_ = pin;
 	t4_DUR_COUT_NUM = duration * CTC_FACTOR;
 
-	t4_ON_DUR = (p_width > 0) ? (p_width * CTC_FACTOR-1) : 0;
-	t4_OFF_DUR = (CYCLE > p_width) ? ((CYCLE - p_width) * CTC_FACTOR-1) : 0;
+	t4_ON_DUR = (p_width > 0) ? (p_width * CTC_FACTOR - 1) : 0;
+	t4_OFF_DUR = (CYCLE > p_width) ? ((CYCLE - p_width) * CTC_FACTOR - 1) : 0;
 
 	t4_PHASE_COUT_NUM = t4_ON_DUR;
 	t4_CUR_STATUS = TRG_ON;
 
-	if(mode == TRG_L)
+	if (mode == TRG_L)
 	{
 		t4_TRG_ON_VAL = LOW;
 		t4_TRG_OFF_VAL = HIGH;
@@ -578,7 +575,7 @@ void PULSE_Class::p3_sqr_wave(int pin, unsigned long duration, float fq, unsigne
 
 void PULSE_Class::p3_pulse(int pin, uint32_t duration, int mode)
 {
-	float fq = (float)1000/2/(float)duration;
+	float fq = (float)1000 / 2 / (float)duration;
 	p3_sqr_wave(pin, duration, fq, duration, mode);
 }
 
@@ -603,16 +600,15 @@ unsigned long t5_CUR_STATUS;
 
 
 inline static void t5_init(){
-	TCCR5B &= ~PRE_SCALE_MASK; //close clock source
+	t_TCCRnB = TCCR5B;
+	_CLEAR(t_TCCRnB, CS50); _CLEAR(t_TCCRnB, CS51); _CLEAR(t_TCCRnB, CS52); //Close clock source.
+	_SET(t_TCCRnB, WGM52); _CLEAR(t_TCCRnB, WGM53); //CTC mode, TOP: OCR1A;
+	TCCR5B = t_TCCRnB;
 	TCCR5A = 0;
-	TCCR5B |= _BV(WGM12); //CTC mode, TOP: OCR1A;
 	TCCR5C = 0;
 	TCNT5H = 0; //set TCNT5 to 0
 	TCNT5L = 0; //set TCNT5 to 0
-	OCR5AH = 0;
-	OCR5AL = 0;
 	TIMSK5 |= _BV(OCIE5A); // Output Compare A Match Interrupt Enable
-	sei(); //enable global interrupter
 }
 
 
@@ -625,13 +621,12 @@ inline static void _t5_stop(){
 }
 
 inline void _t5_start(byte pre_scale){
-	TCNT5H = 0; //set TCNT5 to 0
-	TCNT5L = 0; //set TCNT5 to 0
+	t5_init();
 	TCCR5B |= pre_scale; //set prescale
 }
 
 inline static void _set_t5_isi(uint16_t isi){
-	OCR5AH = isi>>8;
+	OCR5AH = isi >> 8;
 	OCR5AL = isi;
 }
 
@@ -643,7 +638,7 @@ void t5_init_global()
 	t5_DUR_COUT_NUM = 0;
 }
 
-void t5_operator ()
+void t5_operator()
 {
 	t5_DUR_COUT_NUM--;
 	if (t5_DUR_COUT_NUM > 0)
@@ -654,7 +649,7 @@ void t5_operator ()
 		}
 		else
 		{
-			if ((t5_CUR_STATUS == TRG_ON)&&(t5_OFF_DUR > 0))
+			if ((t5_CUR_STATUS == TRG_ON) && (t5_OFF_DUR > 0))
 			{
 				t5_PHASE_COUT_NUM = t5_OFF_DUR;
 				t5_CUR_STATUS = TRG_OFF;
@@ -686,20 +681,20 @@ ISR(TIMER5_COMPA_vect)
 
 void PULSE_Class::p4_sqr_wave(int pin, unsigned long duration, float fq, unsigned long p_width, int mode)
 {
-	float CYCLE = 1000/fq;
+	float CYCLE = 1000 / fq;
 
 	if (duration == 0) return;
 
 	t5_PIN_ = pin;
 	t5_DUR_COUT_NUM = duration * CTC_FACTOR;
 
-	t5_ON_DUR = (p_width > 0) ? (p_width * CTC_FACTOR-1) : 0;
-	t5_OFF_DUR = (CYCLE > p_width) ? ((CYCLE - p_width) * CTC_FACTOR-1) : 0;
+	t5_ON_DUR = (p_width > 0) ? (p_width * CTC_FACTOR - 1) : 0;
+	t5_OFF_DUR = (CYCLE > p_width) ? ((CYCLE - p_width) * CTC_FACTOR - 1) : 0;
 
 	t5_PHASE_COUT_NUM = t5_ON_DUR;
 	t5_CUR_STATUS = TRG_ON;
 
-	if(mode == TRG_L)
+	if (mode == TRG_L)
 	{
 		t5_TRG_ON_VAL = LOW;
 		t5_TRG_OFF_VAL = HIGH;
@@ -720,7 +715,7 @@ void PULSE_Class::p4_sqr_wave(int pin, unsigned long duration, float fq, unsigne
 
 void PULSE_Class::p4_pulse(int pin, uint32_t duration, int mode)
 {
-	float fq = (float)1000/2/(float)duration;
+	float fq = (float)1000 / 2 / (float)duration;
 	p4_sqr_wave(pin, duration, fq, duration, mode);
 }
 
@@ -741,22 +736,7 @@ void PULSE_Class::p4_cancel()
 /***************init********************/
 void PULSE_Class::init()
 {
-
-#if defined __AVR_ATmega328P__
-
-	t1_init();
-
-#elif defined __AVR_ATmega2560__
-
-	t1_init();
-	t3_init();
-	t4_init();
-	t5_init();
-
-#else 
-#error "FAST_PWM only suit for Mage2560, UNO(mega328) and NANO(mega328)."
-#endif
-
+	sei();
 
 }
 
