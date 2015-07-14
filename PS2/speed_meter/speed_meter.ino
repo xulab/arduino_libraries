@@ -4,13 +4,15 @@
 
 #define POS_MASK 0x0000
 #define NEG_MASK 0xFF00
+
+int output_pin = 9;
 int16_t x_move;
 
 
 
 void setup() {
 	delay(100);
-	FAST_PWM.enable_pin(9);
+	FAST_PWM.enable_pin(output_pin);
 	Serial.begin(115200);
 	PS2.init_mouse(REMOTE);
 	delay(100);
@@ -20,30 +22,15 @@ void loop() {
 	delay(10);
 	PS2.read_mouse();
 	x_move = PS2.mouse.X;
-	if(PS2.mouse.byte.X_signbit)
-	{
-		x_move = PS2.mouse.X | NEG_MASK ;
-		if(PS2.mouse.byte.X_overflow)
-		{
-			x_move -= 0xFF;
-		}
-	}
-	else
-	{
-		if(PS2.mouse.byte.X_overflow)
-		{
-			x_move += 0xFF;
-		}
-	}
 	if(x_move>0)
 	{
-		FAST_PWM.write(9, x_move*2);
+		FAST_PWM.write(output_pin, x_move*2);
 	}else 
 	{
-		FAST_PWM.write(9, 0);
+		FAST_PWM.write(output_pin, 0);
 	}
-	Serial.print("x_move:");
-	Serial.println(x_move);
+	// Serial.print("x_move:");
+	// Serial.println(x_move);
 	//Serial.print("byte1:");
 	//Serial.print("L_button:");
 	//Serial.println(PS2.mouse.byte.L_button);
