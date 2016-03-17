@@ -59,6 +59,7 @@
 #define INIT_VOL 192 //gain = 0db
 #define STEP_FLAG_OFF 0
 #define STEP_FLAG_COS_5MS 1
+#define STEP_FLAG_COS_2MS 2
 #define MAX_CHORD_NUM 10
 /*-----------tone-------------*/
 /*-----------TGM_config-------------*/
@@ -142,6 +143,7 @@ public:
 	void quick_tone(uint16_t duration, uint16_t frequency);
 	void quick_tone_vol(uint16_t duration, uint16_t frequency, byte vol);
 	void quick_tone_vol_cosramp_5ms(uint16_t duration, uint16_t frequency, byte vol);
+	void quick_tone_vol_cosramp_2ms(uint16_t duration, uint16_t frequency, byte vol);
 	void wait_command();
 	void set_tone();
 	void set_fq(uint32_t fq);
@@ -150,6 +152,8 @@ public:
 	void test_step();
 	void step_vol_up(byte t_vol);
 	void step_vol_down(byte t_vol);
+	void step_vol_up_2ms(byte t_vol);
+	void step_vol_down_2ms(byte t_vol);
 	void delay_ms(uint16_t data);
 	void SPI_pin_clean();
 	void vol_chip_reset();

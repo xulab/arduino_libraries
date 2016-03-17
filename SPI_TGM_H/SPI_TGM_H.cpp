@@ -279,6 +279,7 @@ inline static void _pga2310_wr(byte LGain, byte RGain){
 /*--------timer1-------*/
 /*--------timer1-------*/
 #define step_size sizeof(vol_step_val_5ms_cos)
+#define step_size_2ms sizeof(vol_step_val_2ms_cos)
 #define TIMER1_STOP 0
 #define TIMER1_STEP_MODE 1
 #define TIMER1_DELAY_MODE 2
@@ -288,6 +289,8 @@ inline static void _pga2310_wr(byte LGain, byte RGain){
 #define TIMER1_SWEEP_EXP 6
 #define TIMER1_NOISE 7
 #define TIMER1_CHORD 8
+#define TIMER1_STEP_UP_2ms 9
+#define TIMER1_STEP_DOWN_2ms 10
 #define _SWEEP_INTERVAL_ 500 //change fq interval(us)
 #define PRE_SCALE_0DIV _BV(CS10) //0.0625us
 #define PRE_SCALE_64DIV (_BV(CS10) | _BV(CS11))
@@ -339,6 +342,27 @@ const byte vol_step_val_5ms_cos[] = {
 		61,64,68,73,80,
 		92,142,255};
 
+const uint16_t vol_step_isi_2ms_cos[] = {
+		//0.0625us
+		6846,2743,2042,1670,1426,
+        1249,1112,1002,911,833,
+        765,706,654,608,565,527,
+        492,460,431,403,379,356,
+        334,313,296,277,262,246,
+        450,400,355,316,280,250,
+        325,273,297,287,251,246,
+        241};
+
+const byte vol_step_val_2ms_cos[] = {
+		1,2,3,4,5,
+        6,7,8,9,10,
+    	11,12,13,14,15,
+    	16,17,18,19,20,
+    	21,22,23,24,25,
+    	26,27,28,30,32,
+    	34,36,38,40,43,
+    	46,50,55,61,70,
+    	89};
 inline static void timer1_init(){
 	TCCR0B = 0;// close timer0
 	TCCR2B = 0;// close timer2
@@ -383,6 +407,14 @@ inline static void _set_step_vol(byte i){
     }
 }
 
+inline static void _set_step_vol_2ms(byte i){
+    if (_target_vol > vol_step_val_2ms_cos[i]){
+	    _set_vol(_target_vol - vol_step_val_2ms_cos[i]);
+    }else{
+	    _set_vol(0);
+    }
+}
+
 inline static void _set_step_up(){
 	byte temp_index = step_size-1-step_index;
 	_set_ctc_isi(vol_step_isi_5ms_cos[temp_index]);
@@ -390,6 +422,12 @@ inline static void _set_step_up(){
 	step_index++;
 }
 
+inline static void _set_step_up_2ms(){
+	byte temp_index = step_size_2ms-1-step_index;
+	_set_ctc_isi(vol_step_isi_2ms_cos[temp_index]);
+	_set_step_vol_2ms(temp_index);
+	step_index++;
+}
 inline static void _sweep_linear(){
 	sweep_index++;
 	uint32_t fq = (uint32_t) (sweep_fq0 + (sweep_linear_step * sweep_index));
@@ -409,6 +447,12 @@ inline static void _set_step_down(){
 	step_index++;
 }
 
+inline static void _set_step_down_2ms(){
+	_set_ctc_isi(vol_step_isi_2ms_cos[step_index]);
+	_set_step_vol_2ms(step_index);
+	step_index++;
+}
+
 //void SPI_TGMClass::test_step(){
 //	step_vol_up(192);
 //	delay_ms(10);
@@ -425,6 +469,15 @@ void SPI_TGMClass::step_vol_up(byte t_vol){
 	step_index = 0;
 }
 
+void SPI_TGMClass::step_vol_up_2ms(byte t_vol){
+	_target_vol = t_vol;
+	step_index = 0;
+	timer1_mode = TIMER1_STEP_UP_2ms;
+	 _set_step_up();
+	_timer1_start(PRE_SCALE_0DIV);
+	while(TIMER1_STOP != timer1_mode);
+	step_index = 0;
+}
 void SPI_TGMClass::step_vol_down(byte t_vol){
 	_target_vol = t_vol;
 	step_index = 0;
@@ -435,6 +488,15 @@ void SPI_TGMClass::step_vol_down(byte t_vol){
 	step_index = 0;
 }
 
+void SPI_TGMClass::step_vol_down_2ms(byte t_vol){
+	_target_vol = t_vol;
+	step_index = 0;
+	timer1_mode = TIMER1_STEP_DOWN_2ms;
+	_set_step_down();
+	_timer1_start(PRE_SCALE_0DIV);
+	while(TIMER1_STOP != timer1_mode);
+	step_index = 0;
+}
 
 static void _sweep_tone_linear(uint16_t fq0, uint16_t fq1, uint16_t _time, byte vol){
 	uint32_t sweep_interval = _SWEEP_INTERVAL_; //us
@@ -578,6 +640,21 @@ ISR(TIMER1_COMPA_vect){
 		}
 		break;
 
+	case TIMER1_STEP_UP_2ms:
+		if (step_index < step_size_2ms){
+			_set_step_up_2ms();
+		}else{
+			_timer1_stop();
+		}
+		break;
+
+	case TIMER1_STEP_DOWN_2ms:
+		if (step_index < step_size_2ms){
+			_set_step_down_2ms();
+		}else{
+			_timer1_stop();
+		}
+		break;
 	case TIMER1_SWEEP_LINEAR:
 		if (sweep_index < sweep_index_size){
 			_sweep_linear();
@@ -736,6 +813,17 @@ void SPI_TGMClass::quick_tone_vol_cosramp_5ms(uint16_t duration, uint16_t freque
 	_set_empty_tone(&_QUICK_TONE);
 }
 
+void SPI_TGMClass::quick_tone_vol_cosramp_2ms(uint16_t duration, uint16_t frequency, byte vol){
+	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
+	_QUICK_TONE.duration = duration;
+	_QUICK_TONE.frequency0 = frequency;
+	_QUICK_TONE.volume_mode = VOLUME_ON;
+	_QUICK_TONE.volume = vol;
+	_QUICK_TONE.step_up_flag = STEP_FLAG_COS_2MS;
+	_QUICK_TONE.step_down_flag = STEP_FLAG_COS_2MS;
+	_write_tone(&_QUICK_TONE);
+	_set_empty_tone(&_QUICK_TONE);
+}
 
 void SPI_TGMClass::quick_sweep_linear_cosramp_5ms(uint16_t duration, uint16_t fq0, uint16_t fq1, byte vol){
 	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
@@ -950,6 +1038,9 @@ void SPI_TGMClass::set_tone(){
 		case STEP_FLAG_COS_5MS:
 			step_vol_up(_target_vol);
 			break;
+		case STEP_FLAG_COS_2MS:
+			step_vol_up_2ms(_target_vol);
+			break; 
 		}
 
 		if(VOLUME_ON == tone.volume_mode){
@@ -1002,6 +1093,9 @@ void SPI_TGMClass::set_tone(){
 		switch(tone.step_down_flag){
 		case STEP_FLAG_COS_5MS:
 			step_vol_down(_target_vol);
+			break;
+		case STEP_FLAG_COS_2MS:
+			step_vol_down_2ms(_target_vol);
 			break;
 		}
 

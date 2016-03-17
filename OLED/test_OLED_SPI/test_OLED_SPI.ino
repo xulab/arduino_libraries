@@ -267,6 +267,12 @@ void OLED_Display_Off(void)
 
 void OLED_Init(void)
 {
+	pinMode(res, OUTPUT);
+	pinMode(dc, OUTPUT);
+	pinMode(cs, OUTPUT);
+	pinMode(clk, OUTPUT);
+	pinMode(mosi, OUTPUT);
+	
 	SPI.setDataMode(SPI_MODE0); 
 	SPI.setClockDivider(SPI_CLOCK_DIV2); //half speed, if the wire is too long may set this to SPI_CLOCK_DIV8
 	SPI.begin();	
@@ -342,7 +348,7 @@ void OLED_ShowChar(unsigned char x,unsigned char y,unsigned char chr)
 			}
 }
 
-void OLED_ShowString(unsigned char x,unsigned char y, char *chr)
+void OLED_ShowString(unsigned char x,unsigned char y, char *chr) // chr will be displayed at pixel position (x, y*8).
 {
 	unsigned char j=0;
 	while (chr[j]!='\0')
@@ -355,20 +361,16 @@ void OLED_ShowString(unsigned char x,unsigned char y, char *chr)
 
 void setup() {
 	// put your setup code here, to run once:
-	Serial.begin(9600);
-	pinMode(res, OUTPUT);
-	pinMode(dc, OUTPUT);
-	pinMode(cs, OUTPUT);
-	pinMode(clk, OUTPUT);
-	pinMode(mosi, OUTPUT);
-
-	delay(1000);
+	// Serial.begin(9600);
+	// delay(1000);
 	OLED_Init();
+//	OLED_ShowString(0,1,"hello world!");
+	OLED_ShowString(50,2,"I'm Oled module.");
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  Serial.println("hello world!");
-  OLED_ShowString(0,1,"hello world!");
-  while(1);
+  // Serial.println("hello world!");
+  
+	// while(1);
 }

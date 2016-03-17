@@ -6,11 +6,11 @@
 
 #define SPEAKER 7
 byte _year = 15;
-byte _month = 1;
-byte _date = 7;
-byte _day = 4;
-byte _hour =12;
-byte _minute = 15;
+byte _month = 11;
+byte _date = 12;
+byte _day = 5;
+byte _hour =17;
+byte _minute = 56;
 byte _sec = 50;
 
 
@@ -20,14 +20,14 @@ Serial.begin(9600);
 	RCM.init();
   pinMode(SPEAKER, OUTPUT);
    digitalWrite(SPEAKER, LOW); 
- //    RCM.setSecond(_sec);//Set the second 
- //    RCM.setMinute(_minute);//Set the minute 
- //    RCM.setHour(_hour);  //Set the hour 
- //    RCM.setDoW(_day);    //Set the day of the week
- //    RCM.setDate(_date);  //Set the date of the month
- //    RCM.setMonth(_month);  //Set the month of the year
- //    RCM.setYear(_year);  //Set the year (Last two digits of the year)
-	// // Start the serial interface
+    // RCM.setSecond(_sec);//Set the second 
+    // RCM.setMinute(_minute);//Set the minute 
+    // RCM.setHour(_hour);  //Set the hour 
+    // RCM.setDoW(_day);    //Set the day of the week
+    // RCM.setDate(_date);  //Set the date of the month
+    // RCM.setMonth(_month);  //Set the month of the year
+    // RCM.setYear(_year);  //Set the year (Last two digits of the year)
+	// Start the serial interface
 
 }
 

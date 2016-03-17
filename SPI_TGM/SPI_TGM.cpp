@@ -279,6 +279,19 @@ void SPI_TGMClass::quick_tone_vol_cosramp_5ms(uint16_t duration, uint16_t freque
 	_set_empty_tone(&_QUICK_TONE);
 }
 
+void SPI_TGMClass::quick_tone_vol_cosramp_2ms(uint16_t duration, uint16_t frequency, byte vol){
+	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
+	_QUICK_TONE.duration = duration;
+	_QUICK_TONE.frequency0 = frequency;
+	_QUICK_TONE.volume_mode = VOLUME_ON;
+	_QUICK_TONE.volume = vol;
+	_QUICK_TONE.step_up_flag = STEP_FLAG_COS_2MS;
+	_QUICK_TONE.step_down_flag = STEP_FLAG_COS_2MS;
+	_write_tone(&_QUICK_TONE);
+	_set_empty_tone(&_QUICK_TONE);
+}
+
+
 void SPI_TGMClass::tone_vol_rampup(uint16_t frequency, byte vol){
 	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
 	_QUICK_TONE.duration = 0;
