@@ -15,7 +15,7 @@
 /*-----------timer1-------------*/
 
 /*-----------TGM_config-------------*/
-const char VERSION_STRING[] = "VER001_20140211_PJW.";
+const char VERSION_STRING[] = "VER001_20160318_PJW.";
 /*-----------error-------------*/
 const char noerror_string[] = "no error";
 const char error_string1[] = "no error";
@@ -473,7 +473,7 @@ void SPI_TGMClass::step_vol_up_2ms(byte t_vol){
 	_target_vol = t_vol;
 	step_index = 0;
 	timer1_mode = TIMER1_STEP_UP_2ms;
-	 _set_step_up();
+	 _set_step_up_2ms();
 	_timer1_start(PRE_SCALE_0DIV);
 	while(TIMER1_STOP != timer1_mode);
 	step_index = 0;
@@ -492,7 +492,7 @@ void SPI_TGMClass::step_vol_down_2ms(byte t_vol){
 	_target_vol = t_vol;
 	step_index = 0;
 	timer1_mode = TIMER1_STEP_DOWN_2ms;
-	_set_step_down();
+	_set_step_down_2ms();
 	_timer1_start(PRE_SCALE_0DIV);
 	while(TIMER1_STOP != timer1_mode);
 	step_index = 0;

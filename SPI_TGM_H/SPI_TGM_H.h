@@ -1,4 +1,5 @@
 // SPI_TGM.h
+// Must using arduino compiler verson 1.5.6
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "Arduino.h"
 #else
