@@ -1,5 +1,6 @@
 step_interval = 0.0625; %us
-ramp_time = 5000; %us
+ramp_time = 2000; %us
+minimum_circle = 320;
 
 
 adj_db =0:-0.5:-127;
@@ -24,7 +25,7 @@ f=finverse(y);
  j=1;
  for i = 1:length(adj_step_ind)
      
-     if (adj_step_ind(i) - temp_ind)>240
+     if (adj_step_ind(i) - temp_ind)>minimum_circle
          result_step_isi(j) = int32(adj_step_ind(i)) - temp_ind;
          temp_ind = int32(adj_step_ind(i));
          result_adj_vol(j) = i-1;
