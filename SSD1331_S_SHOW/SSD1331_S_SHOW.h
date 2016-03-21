@@ -15,8 +15,8 @@ private:
 
 public:
 	void init(void);
-	void show_line(int line, const char * str);
-	void erase_line(int line);
+	void show_line(unsigned int line, const char * str);
+	void erase_line(unsigned int line);
 	void erase_screen(void);
 };
 

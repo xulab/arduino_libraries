@@ -1,0 +1,16 @@
+/*
+
+This is a library to display important infomation on a SSD1331 RGB OLED.
+To display paras of mouse behavior experiments
+In persue of easy use that simply choose what to display and on which line.
+only several really useful functions constructed
+the first line is 0
+96*64resolution, 6*8 each char, 16 chars a line,8 lines available
+Must work with two other libraries:SGL, SSD1331
+
+To find out where's been changed to main program,Ctrl+F"SSD1331_S_SHOW"
+now displays TrialNum, Stimulation onset signal etc. See in main Program.
+have fun.
+First functional Demo:20151015.
+*/
+

@@ -31,7 +31,7 @@
 #ifndef _SGL_H_ //Seeed Graphics Library
 #define _SGL_H_
 
-#include "arduino.h"
+#include "Arduino.h"
 //#include "font.h"
 #include <avr/pgmspace.h>
 

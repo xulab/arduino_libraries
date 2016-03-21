@@ -60,7 +60,7 @@
 #ifndef _SSD1331_H_
 #define _SSD1331_H_
 
-#include "arduino.h"
+#include "Arduino.h"
 #include "SGL.h"
 
 #define RGB_OLED_WIDTH                      96
