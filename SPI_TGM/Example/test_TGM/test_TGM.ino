@@ -3,12 +3,12 @@
 #include <SPI_TGM.h>
 #include <CACHE.h>
 
-uint16_t fq0 = 10000;
+uint16_t fq0 = 3000;
 uint16_t fq1 = 2000; 
 // double base;
 int isi = 1000;
 int sweep_isi = 1;
-int duration = 2000;
+int duration = 1000;
 byte vol = 192; 
 
 
