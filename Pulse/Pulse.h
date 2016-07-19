@@ -88,23 +88,35 @@ public:
 #if defined __AVR_ATmega328P__
 	void init();
 	void p1_sqr_wave(int pin, unsigned long duration, float fq, unsigned long p_width, int mode); 
+	void p1_sqr_wave(int pin, unsigned long duration, float fq, unsigned long p_width, int mode, unsigned long pre_trg_delay); 
 	void p1_pulse(int pin, uint32_t duration, int mode); 
 	void p1_cancel(); 
 
 #elif defined __AVR_ATmega2560__
 	void init();
 	void p1_sqr_wave(int pin, unsigned long duration, float fq, unsigned long p_width, int mode); 
+	void p1_sqr_wave(int pin, unsigned long duration, float fq, unsigned long p_width, int mode, unsigned long pre_trg_delay); 
 	void p1_pulse(int pin, uint32_t duration, int mode); 
 	void p1_cancel(); 
+		
 	void p2_sqr_wave(int pin, unsigned long duration, float fq, unsigned long p_width, int mode);
+	void p2_sqr_wave(int pin, unsigned long duration, float fq, unsigned long p_width, int mode, unsigned long pre_trg_delay); 
 	void p2_pulse(int pin, uint32_t duration, int mode);
 	void p2_cancel();
+
 	void p3_sqr_wave(int pin, unsigned long duration, float fq, unsigned long p_width, int mode);
+	void p3_sqr_wave(int pin, unsigned long duration, float fq, unsigned long p_width, int mode, unsigned long pre_trg_delay); 
 	void p3_pulse(int pin, uint32_t duration, int mode);
 	void p3_cancel();
-	void p4_sqr_wave(int pin, unsigned long duration, float fq, unsigned long p_width, int mode);
-	void p4_pulse(int pin, uint32_t duration, int mode);
-	void p4_cancel();
+
+	// void p4_sqr_wave(int pin, unsigned long duration, float fq, unsigned long p_width, int mode);
+	// void p4_sqr_wave(int pin, unsigned long duration, float fq, unsigned long p_width, int mode, unsigned long pre_trg_delay); 
+	// void p4_pulse(int pin, uint32_t duration, int mode);
+	// void p4_cancel();
+	void PWM_write5A(uint16_t);
+	void PWM_write5B(uint16_t);
+	void PWM_write5C(uint16_t);
+	
 #else 
 #error "FAST_PWM only suit for Mage2560, UNO(mega328) and NANO(mega328)."
 #endif
