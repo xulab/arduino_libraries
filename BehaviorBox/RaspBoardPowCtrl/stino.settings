@@ -1,0 +1,23 @@
+{
+    "arduino_folder": "E:\\tools\\program\\arduino\\arduino-1.5.6-r2", 
+    "baudrate": 10, 
+    "board": 15, 
+    "board_option": {
+        "2.15": [
+            1
+        ], 
+        "2.3": [
+            0
+        ], 
+        "2.4": [
+            0
+        ]
+    }, 
+    "full_compilation": true, 
+    "platform": 2, 
+    "platform_name": "Arduino AVR Boards", 
+    "programmer": {
+        "2": 3
+    }, 
+    "serial_port": 0
+}
