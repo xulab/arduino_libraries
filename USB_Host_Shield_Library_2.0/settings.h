@@ -71,6 +71,12 @@ e-mail   :  support@circuitsathome.com
 #define USE_SPI4TEENSY3 1
 #endif
 
+// disabled on the Teensy LC as it is incompatible for now
+#if defined(__MKL26Z64__)
+#undef USE_SPI4TEENSY3
+#define USE_SPI4TEENSY3 0
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////
 // AUTOMATIC Settings
 ////////////////////////////////////////////////////////////////////////////////
@@ -123,17 +129,46 @@ e-mail   :  support@circuitsathome.com
 #define EXT_RAM 0
 #endif
 
-#if defined(CORE_TEENSY) && (defined(__MK20DX128__) || defined(__MK20DX256__))
+#if defined(CORE_TEENSY) && (defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MKL26Z64__))
 #define USING_SPI4TEENSY3 USE_SPI4TEENSY3
 #else
 #define USING_SPI4TEENSY3 0
 #endif
 
-#if ((defined(ARDUINO_SAM_DUE) && defined(__SAM3X8E__)) || defined(RBL_NRF51822) || defined(__ARDUINO_X86__) || ARDUINO >= 10600) && !USING_SPI4TEENSY3
-#include <SPI.h> // Use the Arduino SPI library for the Arduino Due, RedBearLab nRF51822, Intel Galileo 1 & 2, Intel Edison or if the SPI library with transaction is available
+#if ((defined(ARDUINO_SAM_DUE) && defined(__SAM3X8E__)) || defined(__ARDUINO_X86__) || ARDUINO >= 10600) && !USING_SPI4TEENSY3
+#include <SPI.h> // Use the Arduino SPI library for the Arduino Due, Intel Galileo 1 & 2, Intel Edison or if the SPI library with transaction is available
+#endif
+#ifdef RBL_NRF51822
+#include <nrf_gpio.h>
+#include <SPI_Master.h>
+#define SPI SPI_Master
 #endif
 #if defined(__PIC32MX__) || defined(__PIC32MZ__)
 #include <../../../../hardware/pic32/libraries/SPI/SPI.h> // Hack to use the SPI library
+#endif
+
+#ifdef STM32F4
+#include "stm32f4xx_hal.h"
+extern SPI_HandleTypeDef SPI_Handle; // Needed to be declared in your main.cpp
+#endif
+
+// Fix defines on Arduino Due
+#ifdef ARDUINO_SAM_DUE
+#ifdef tokSETUP
+#undef tokSETUP
+#endif
+#ifdef tokIN
+#undef tokIN
+#endif
+#ifdef tokOUT
+#undef tokOUT
+#endif
+#ifdef tokINHS
+#undef tokINHS
+#endif
+#ifdef tokOUTHS
+#undef tokOUTHS
+#endif
 #endif
 
 #endif /* SETTINGS_H */

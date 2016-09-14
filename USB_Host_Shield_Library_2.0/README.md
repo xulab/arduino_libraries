@@ -28,6 +28,8 @@ For more information about the hardware see the [Hardware Manual](http://www.cir
     * Major contributor to mass storage code
 * __guruthree__
     * [Xbox ONE](#xbox-one-library) controller support
+* __Yuuichi Akagawa__ - [@YuuichiAkagawa](https://twitter.com/yuuichiakagawa)
+    * Developer of the [MIDI](#midi-library) library
 
 # Donate
 
@@ -55,6 +57,8 @@ Help yourself by helping us support you! Many thousands of hours have been spent
         * [Xbox ONE Library](#xbox-one-library)
     * [Wii library](#wii-library)
     * [PS Buzz Library](#ps-buzz-library)
+    * [HID Libraries](#hid-libraries)
+    * [MIDI Library](#midi-library)
 * [Interface modifications](#interface-modifications)
 * [FAQ](#faq)
 
@@ -108,7 +112,8 @@ Currently the following boards are supported by the library:
 * All official Arduino AVR boards (Uno, Duemilanove, Mega, Mega 2560, Mega ADK, Leonardo etc.)
 * Arduino Due, Intel Galileo, Intel Galileo 2, and Intel Edison
     * Note that the Intel Galileo uses pin 2 and 3 as INT and SS pin respectively by default, so some modifications to the shield are needed. See the "Interface modifications" section in the [hardware manual](https://www.circuitsathome.com/usb-host-shield-hardware-manual) for more information.
-* Teensy (Teensy++ 1.0, Teensy 2.0, Teensy++ 2.0, and Teensy 3.x)
+    * Note native USB host is not supported on any of these platforms. You will have to use the shield for now.
+* Teensy (Teensy++ 1.0, Teensy 2.0, Teensy++ 2.0, Teensy 3.x, and Teensy LC)
     * Note if you are using the Teensy 3.x you should download this SPI library as well: <https://github.com/xxxajk/spi4teensy3>. You should then add ```#include <spi4teensy3.h>``` to your .ino file.
 * Balanduino
 * Sanguino
@@ -116,6 +121,8 @@ Currently the following boards are supported by the library:
 * RedBearLab nRF51822
 * Digilent chipKIT
     * Please see: <http://www.circuitsathome.com/mcu/usb/running-usb-host-code-on-digilent-chipkit-board>.
+* STM32F4
+    * Currently the [NUCLEO-F446RE](http://www.st.com/web/catalog/tools/FM116/SC959/SS1532/LN1847/PF262063) is supported featuring the STM32F446. Take a look at the following example code: <https://github.com/Lauszus/Nucleo_F446RE_USBHost>.
 
 The following boards need to be activated manually in [settings.h](settings.h):
 
@@ -169,7 +176,7 @@ The [PS4BT.ino](examples/Bluetooth/PS4BT/PS4BT.ino) and [PS4USB.ino](examples/PS
 
 Before you can use the PS4 controller via Bluetooth you will need to pair with it.
 
-Simply create the PS4BT instance like so: ```PS4BT PS4(&Btd, PAIR);``` and then hold down the Share button and then hold down the PS without releasing the Share button. The PS4 controller will then start to blink rapidly indicating that it is in paring mode.
+Simply create the PS4BT instance like so: ```PS4BT PS4(&Btd, PAIR);``` and then hold down the Share button and then hold down the PS without releasing the Share button. The PS4 controller will then start to blink rapidly indicating that it is in pairing mode.
 
 It should then automatically pair the dongle with your controller. This only have to be done once.
 
@@ -303,6 +310,20 @@ More information about the controller can be found at the following sites:
 
 * http://www.developerfusion.com/article/84338/making-usb-c-friendly/
 * https://github.com/torvalds/linux/blob/master/drivers/hid/hid-sony.c
+
+### HID Libraries
+
+HID devices are also supported by the library. However these require you to write your own driver. A few example are provided in the [examples/HID](examples/HID) directory. Including an example for the [SteelSeries SRW-S1 Steering Wheel](examples/HID/SRWS1/SRWS1.ino).
+
+### [MIDI Library](usbh_midi.cpp)
+
+The library support MIDI devices.  
+You can convert USB MIDI keyboard to legacy serial MIDI.
+
+* [USB_MIDI_converter.ino](examples/USBH_MIDI/USB_MIDI_converter/USB_MIDI_converter.ino) 
+* [USB_MIDI_converter_multi.ino](examples/USBH_MIDI/USB_MIDI_converter_multi/USB_MIDI_converter_multi.ino) 
+
+For information see the following page: <http://yuuichiakagawa.github.io/USBH_MIDI/>.
 
 # Interface modifications
 

@@ -5,53 +5,6 @@
 #ifdef dobogusinclude
 #include <spi4teensy3.h>
 #include <SPI.h>
-#include "BTD.h"
-#include "BTHID.h"
-#include "PS3BT.h"
-#include "PS3Enums.h"
-#include "PS3USB.h"
-#include "PS4BT.h"
-#include "PS4Parser.h"
-#include "PS4USB.h"
-#include "PSBuzz.h"
-#include "SPP.h"
-#include "Usb.h"
-#include "UsbCore.h"
-#include "Wii.h"
-#include "XBOXOLD.h"
-#include "XBOXONE.h"
-#include "XBOXRECV.h"
-#include "XBOXUSB.h"
-#include "address.h"
-#include "adk.h"
-#include "avrpins.h"
-#include "cdc_XR21B1411.h"
-#include "cdcacm.h"
-#include "cdcftdi.h"
-#include "cdcprolific.h"
-#include "confdescparser.h"
-#include "controllerEnums.h"
-#include "hexdump.h"
-#include "hid.h"
-#include "hidboot.h"
-#include "hidescriptorparser.h"
-#include "hiduniversal.h"
-#include "hidusagestr.h"
-#include "macros.h"
-#include "masstorage.h"
-#include "max3421e.h"
-#include "max_LCD.h"
-#include "message.h"
-#include "parsetools.h"
-#include "printhex.h"
-#include "settings.h"
-#include "sink_parser.h"
-#include "usb_ch9.h"
-#include "usbhost.h"
-#include "usbhub.h"
-#include "version_helper.h"
-#include "xboxEnums.h"
-
 #endif
 
 class MouseRptParser : public MouseReportParser
@@ -99,7 +52,7 @@ void MouseRptParser::OnMiddleButtonDown	(MOUSEINFO *mi)
 
 USB     Usb;
 USBHub     Hub(&Usb);
-HIDBoot<HID_PROTOCOL_MOUSE>    HidMouse(&Usb);
+HIDBoot<USB_HID_PROTOCOL_MOUSE>    HidMouse(&Usb);
 
 uint32_t next_time;
 
@@ -120,7 +73,7 @@ void setup()
 
     next_time = millis() + 5000;
 
-    HidMouse.SetReportParser(0,(HIDReportParser*)&Prs);
+    HidMouse.SetReportParser(0, &Prs);
 }
 
 void loop()

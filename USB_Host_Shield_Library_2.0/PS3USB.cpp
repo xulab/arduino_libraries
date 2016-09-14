@@ -28,7 +28,8 @@ bPollEnable(false) // don't start polling before dongle is connected
         for(uint8_t i = 0; i < PS3_MAX_ENDPOINTS; i++) {
                 epInfo[i].epAddr = 0;
                 epInfo[i].maxPktSize = (i) ? 0 : 8;
-                epInfo[i].epAttribs = 0;
+                epInfo[i].bmSndToggle = 0;
+                epInfo[i].bmRcvToggle = 0;
                 epInfo[i].bmNakPower = (i) ? USB_NAK_NOWAIT : USB_NAK_MAX_POWER;
         }
 
@@ -335,25 +336,23 @@ uint16_t PS3USB::getSensor(SensorEnum a) {
         return ((readBuf[((uint16_t)a) - 9] << 8) | readBuf[((uint16_t)a + 1) - 9]);
 }
 
-double PS3USB::getAngle(AngleEnum a) {
+float PS3USB::getAngle(AngleEnum a) {
         if(PS3Connected) {
-                double accXval;
-                double accYval;
-                double accZval;
+                float accXval, accYval, accZval;
 
                 // Data for the Kionix KXPC4 used in the DualShock 3
-                const double zeroG = 511.5; // 1.65/3.3*1023 (1,65V)
-                accXval = -((double)getSensor(aX) - zeroG);
-                accYval = -((double)getSensor(aY) - zeroG);
-                accZval = -((double)getSensor(aZ) - zeroG);
+                const float zeroG = 511.5f; // 1.65/3.3*1023 (1,65V)
+                accXval = -((float)getSensor(aX) - zeroG);
+                accYval = -((float)getSensor(aY) - zeroG);
+                accZval = -((float)getSensor(aZ) - zeroG);
 
                 // Convert to 360 degrees resolution
                 // atan2 outputs the value of -π to π (radians)
                 // We are then converting it to 0 to 2π and then to degrees
                 if(a == Pitch)
-                        return (atan2(accYval, accZval) + PI) * RAD_TO_DEG;
+                        return (atan2f(accYval, accZval) + PI) * RAD_TO_DEG;
                 else
-                        return (atan2(accXval, accZval) + PI) * RAD_TO_DEG;
+                        return (atan2f(accXval, accZval) + PI) * RAD_TO_DEG;
         } else
                 return 0;
 }
@@ -363,9 +362,9 @@ bool PS3USB::getStatus(StatusEnum c) {
 }
 
 void PS3USB::printStatusString() {
-        char statusOutput[100]; // Max string length plus null character
+        char statusOutput[102]; // Max string length plus null character
         if(PS3Connected || PS3NavigationConnected) {
-                strcpy_P(statusOutput, PSTR("ConnectionStatus: "));
+                strcpy_P(statusOutput, PSTR("\r\nConnectionStatus: "));
 
                 if(getStatus(Plugged)) strcat_P(statusOutput, PSTR("Plugged"));
                 else if(getStatus(Unplugged)) strcat_P(statusOutput, PSTR("Unplugged"));
@@ -390,7 +389,7 @@ void PS3USB::printStatusString() {
                 else if(getStatus(Bluetooth)) strcat_P(statusOutput, PSTR("Bluetooth - Rumble is off"));
                 else strcat_P(statusOutput, PSTR("Error"));
         } else
-                strcpy_P(statusOutput, PSTR("Error"));
+                strcpy_P(statusOutput, PSTR("\r\nError"));
 
         USB_HOST_SERIAL.write(statusOutput);
 }
@@ -409,12 +408,13 @@ void PS3USB::setAllOff() {
 }
 
 void PS3USB::setRumbleOff() {
-        writeBuf[1] = 0x00;
-        writeBuf[2] = 0x00; // Low mode off
-        writeBuf[3] = 0x00;
-        writeBuf[4] = 0x00; // High mode off
-
-        PS3_Command(writeBuf, PS3_REPORT_BUFFER_SIZE);
+        uint8_t rumbleBuf[EP_MAXPKTSIZE];
+        memcpy(rumbleBuf, writeBuf, EP_MAXPKTSIZE);
+        rumbleBuf[1] = 0x00;
+        rumbleBuf[2] = 0x00; // Low mode off
+        rumbleBuf[3] = 0x00;
+        rumbleBuf[4] = 0x00; // High mode off
+        PS3_Command(rumbleBuf, PS3_REPORT_BUFFER_SIZE);
 }
 
 void PS3USB::setRumbleOn(RumbleEnum mode) {
@@ -429,11 +429,13 @@ void PS3USB::setRumbleOn(RumbleEnum mode) {
 }
 
 void PS3USB::setRumbleOn(uint8_t rightDuration, uint8_t rightPower, uint8_t leftDuration, uint8_t leftPower) {
-        writeBuf[1] = rightDuration;
-        writeBuf[2] = rightPower;
-        writeBuf[3] = leftDuration;
-        writeBuf[4] = leftPower;
-        PS3_Command(writeBuf, PS3_REPORT_BUFFER_SIZE);
+        uint8_t rumbleBuf[EP_MAXPKTSIZE];
+        memcpy(rumbleBuf, writeBuf, EP_MAXPKTSIZE);
+        rumbleBuf[1] = rightDuration;
+        rumbleBuf[2] = rightPower;
+        rumbleBuf[3] = leftDuration;
+        rumbleBuf[4] = leftPower;
+        PS3_Command(rumbleBuf, PS3_REPORT_BUFFER_SIZE);
 }
 
 void PS3USB::setLedRaw(uint8_t value) {
@@ -555,7 +557,7 @@ void PS3USB::getMoveCalibration(uint8_t *data) {
                 // bmRequest = Device to host (0x80) | Class (0x20) | Interface (0x01) = 0xA1, bRequest = Get Report (0x01), Report ID (0x10), Report Type (Feature 0x03), interface (0x00), datalength, datalength, data
                 pUsb->ctrlReq(bAddress, epInfo[PS3_CONTROL_PIPE].epAddr, bmREQ_HID_IN, HID_REQUEST_GET_REPORT, 0x10, 0x03, 0x00, 49, 49, buf, NULL);
 
-                for(byte j = 0; j < 49; j++)
+                for(uint8_t j = 0; j < 49; j++)
                         data[49 * i + j] = buf[j];
         }
 }
@@ -567,6 +569,6 @@ void PS3USB::onInit() {
                 if(PS3MoveConnected)
                         moveSetBulb(Red);
                 else // Dualshock 3 or Navigation controller
-                        setLedOn(LED1);
+                        setLedOn(static_cast<LEDEnum>(LED1));
         }
 }

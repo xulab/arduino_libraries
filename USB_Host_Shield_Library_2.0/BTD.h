@@ -19,7 +19,7 @@
 #define _btd_h_
 
 #include "Usb.h"
-#include "hid.h"
+#include "usbhid.h"
 
 //PID and VID of the Sony PS3 devices
 #define PS3_VID                 0x054C  // Sony Corporation
@@ -535,7 +535,7 @@ private:
         uint8_t pollInterval;
         bool bPollEnable;
 
-        bool pairWiiUsingSync; // True if paring was done using the Wii SYNC button.
+        bool pairWiiUsingSync; // True if pairing was done using the Wii SYNC button.
         bool checkRemoteName; // Used to check remote device's name before connecting.
         bool incomingPS4; // True if a PS4 controller is connecting
         uint8_t classOfDevice[3]; // Class of device of last device

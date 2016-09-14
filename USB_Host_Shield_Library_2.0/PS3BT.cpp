@@ -82,15 +82,15 @@ int16_t PS3BT::getSensor(SensorEnum a) {
                 return 0;
 }
 
-double PS3BT::getAngle(AngleEnum a) {
-        double accXval, accYval, accZval;
+float PS3BT::getAngle(AngleEnum a) {
+        float accXval, accYval, accZval;
 
         if(PS3Connected) {
                 // Data for the Kionix KXPC4 used in the DualShock 3
-                const double zeroG = 511.5; // 1.65/3.3*1023 (1.65V)
-                accXval = -((double)getSensor(aX) - zeroG);
-                accYval = -((double)getSensor(aY) - zeroG);
-                accZval = -((double)getSensor(aZ) - zeroG);
+                const float zeroG = 511.5f; // 1.65/3.3*1023 (1.65V)
+                accXval = -((float)getSensor(aX) - zeroG);
+                accYval = -((float)getSensor(aY) - zeroG);
+                accZval = -((float)getSensor(aZ) - zeroG);
         } else if(PS3MoveConnected) {
                 // It's a Kionix KXSC4 inside the Motion controller
                 const uint16_t zeroG = 0x8000;
@@ -104,36 +104,36 @@ double PS3BT::getAngle(AngleEnum a) {
         // atan2 outputs the value of -π to π (radians)
         // We are then converting it to 0 to 2π and then to degrees
         if(a == Pitch)
-                return (atan2(accYval, accZval) + PI) * RAD_TO_DEG;
+                return (atan2f(accYval, accZval) + PI) * RAD_TO_DEG;
         else
-                return (atan2(accXval, accZval) + PI) * RAD_TO_DEG;
+                return (atan2f(accXval, accZval) + PI) * RAD_TO_DEG;
 }
 
-double PS3BT::get9DOFValues(SensorEnum a) { // Thanks to Manfred Piendl
+float PS3BT::get9DOFValues(SensorEnum a) { // Thanks to Manfred Piendl
         if(!PS3MoveConnected)
                 return 0;
         int16_t value = getSensor(a);
         if(a == mXmove || a == mYmove || a == mZmove) {
                 if(value > 2047)
                         value -= 0x1000;
-                return (double)value / 3.2; // unit: muT = 10^(-6) Tesla
+                return (float)value / 3.2f; // unit: muT = 10^(-6) Tesla
         } else if(a == aXmove || a == aYmove || a == aZmove) {
                 if(value < 0)
                         value += 0x8000;
                 else
                         value -= 0x8000;
-                return (double)value / 442.0; // unit: m/(s^2)
+                return (float)value / 442.0f; // unit: m/(s^2)
         } else if(a == gXmove || a == gYmove || a == gZmove) {
                 if(value < 0)
                         value += 0x8000;
                 else
                         value -= 0x8000;
                 if(a == gXmove)
-                        return (double)value / 11.6; // unit: deg/s
+                        return (float)value / 11.6f; // unit: deg/s
                 else if(a == gYmove)
-                        return (double)value / 11.2; // unit: deg/s
+                        return (float)value / 11.2f; // unit: deg/s
                 else // gZmove
-                        return (double)value / 9.6; // unit: deg/s
+                        return (float)value / 9.6f; // unit: deg/s
         } else
                 return 0;
 }
@@ -158,9 +158,9 @@ bool PS3BT::getStatus(StatusEnum c) {
 }
 
 void PS3BT::printStatusString() {
-        char statusOutput[100]; // Max string length plus null character
+        char statusOutput[102]; // Max string length plus null character
         if(PS3Connected || PS3NavigationConnected) {
-                strcpy_P(statusOutput, PSTR("ConnectionStatus: "));
+                strcpy_P(statusOutput, PSTR("\r\nConnectionStatus: "));
 
                 if(getStatus(Plugged)) strcat_P(statusOutput, PSTR("Plugged"));
                 else if(getStatus(Unplugged)) strcat_P(statusOutput, PSTR("Unplugged"));
@@ -185,7 +185,7 @@ void PS3BT::printStatusString() {
                 else if(getStatus(Bluetooth)) strcat_P(statusOutput, PSTR("Bluetooth - Rumble is off"));
                 else strcat_P(statusOutput, PSTR("Error"));
         } else if(PS3MoveConnected) {
-                strcpy_P(statusOutput, PSTR("PowerRating: "));
+                strcpy_P(statusOutput, PSTR("\r\nPowerRating: "));
 
                 if(getStatus(MoveCharging)) strcat_P(statusOutput, PSTR("Charging"));
                 else if(getStatus(MoveNotCharging)) strcat_P(statusOutput, PSTR("Not Charging"));
@@ -196,7 +196,7 @@ void PS3BT::printStatusString() {
                 else if(getStatus(MoveFull)) strcat_P(statusOutput, PSTR("Full"));
                 else strcat_P(statusOutput, PSTR("Error"));
         } else
-                strcpy_P(statusOutput, PSTR("Error"));
+                strcpy_P(statusOutput, PSTR("\r\nError"));
 
         USB_HOST_SERIAL.write(statusOutput);
 }
@@ -528,12 +528,13 @@ void PS3BT::setAllOff() {
 }
 
 void PS3BT::setRumbleOff() {
-        HIDBuffer[3] = 0x00;
-        HIDBuffer[4] = 0x00;
-        HIDBuffer[5] = 0x00;
-        HIDBuffer[6] = 0x00;
-
-        HID_Command(HIDBuffer, HID_BUFFERSIZE);
+        uint8_t rumbleBuf[HID_BUFFERSIZE];
+        memcpy(rumbleBuf, HIDBuffer, HID_BUFFERSIZE);
+        rumbleBuf[3] = 0x00;
+        rumbleBuf[4] = 0x00;
+        rumbleBuf[5] = 0x00;
+        rumbleBuf[6] = 0x00;
+        HID_Command(rumbleBuf, HID_BUFFERSIZE);
 }
 
 void PS3BT::setRumbleOn(RumbleEnum mode) {
@@ -546,11 +547,13 @@ void PS3BT::setRumbleOn(RumbleEnum mode) {
 }
 
 void PS3BT::setRumbleOn(uint8_t rightDuration, uint8_t rightPower, uint8_t leftDuration, uint8_t leftPower) {
-        HIDBuffer[3] = rightDuration;
-        HIDBuffer[4] = rightPower;
-        HIDBuffer[5] = leftDuration;
-        HIDBuffer[6] = leftPower;
-        HID_Command(HIDBuffer, HID_BUFFERSIZE);
+        uint8_t rumbleBuf[HID_BUFFERSIZE];
+        memcpy(rumbleBuf, HIDBuffer, HID_BUFFERSIZE);
+        rumbleBuf[3] = rightDuration;
+        rumbleBuf[4] = rightPower;
+        rumbleBuf[5] = leftDuration;
+        rumbleBuf[6] = leftPower;
+        HID_Command(rumbleBuf, HID_BUFFERSIZE);
 }
 
 void PS3BT::setLedRaw(uint8_t value) {
@@ -629,6 +632,6 @@ void PS3BT::onInit() {
                 if(PS3MoveConnected)
                         moveSetBulb(Red);
                 else // Dualshock 3 or Navigation controller
-                        setLedOn(LED1);
+                        setLedOn(static_cast<LEDEnum>(LED1));
         }
 }

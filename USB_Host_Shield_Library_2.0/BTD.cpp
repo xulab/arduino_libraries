@@ -101,6 +101,9 @@ uint8_t BTD::ConfigureDevice(uint8_t parent, uint8_t port, bool lowspeed) {
                 return USB_ERROR_OUT_OF_ADDRESS_SPACE_IN_POOL;
         }
 
+        if (udd->bDeviceClass == 0x09) // Some dongles have an USB hub inside
+                goto FailHub;
+
         epInfo[0].maxPktSize = udd->bMaxPacketSize0; // Extract Max Packet Size from device descriptor
         epInfo[1].epAddr = udd->bNumConfigurations; // Steal and abuse from epInfo structure to save memory
 
@@ -108,6 +111,15 @@ uint8_t BTD::ConfigureDevice(uint8_t parent, uint8_t port, bool lowspeed) {
         PID = udd->idProduct;
 
         return USB_ERROR_CONFIG_REQUIRES_ADDITIONAL_RESET;
+
+FailHub:
+#ifdef DEBUG_USB_HOST
+        Notify(PSTR("\r\nPlease create a hub instance in your code: \"USBHub Hub1(&Usb);\""), 0x80);
+#endif
+        pUsb->setAddr(bAddress, 0, 0); // Reset address
+        rcode = USB_DEV_CONFIG_ERROR_DEVICE_NOT_SUPPORTED;
+        Release();
+        return rcode;
 
 FailGetDevDescr:
 #ifdef DEBUG_USB_HOST
@@ -290,7 +302,8 @@ void BTD::Initialize() {
         for(i = 0; i < BTD_MAX_ENDPOINTS; i++) {
                 epInfo[i].epAddr = 0;
                 epInfo[i].maxPktSize = (i) ? 0 : 8;
-                epInfo[i].epAttribs = 0;
+                epInfo[i].bmSndToggle = 0;
+                epInfo[i].bmRcvToggle = 0;
                 epInfo[i].bmNakPower = (i) ? USB_NAK_NOWAIT : USB_NAK_MAX_POWER;
         }
         for(i = 0; i < BTD_NUM_SERVICES; i++) {
@@ -576,16 +589,25 @@ void BTD::HCI_event_task() {
                                 break;
 
                         case EV_AUTHENTICATION_COMPLETE:
-                                if(pairWithWii && !connectToWii) {
+                                if(!hcibuf[2]) { // Check if pairing was successful
+                                        if(pairWithWii && !connectToWii) {
 #ifdef DEBUG_USB_HOST
-                                        Notify(PSTR("\r\nPairing successful with Wiimote"), 0x80);
+                                                Notify(PSTR("\r\nPairing successful with Wiimote"), 0x80);
 #endif
-                                        connectToWii = true; // Used to indicate to the Wii service, that it should connect to this device
-                                } else if(pairWithHIDDevice && !connectToHIDDevice) {
+                                                connectToWii = true; // Used to indicate to the Wii service, that it should connect to this device
+                                        } else if(pairWithHIDDevice && !connectToHIDDevice) {
 #ifdef DEBUG_USB_HOST
-                                        Notify(PSTR("\r\nPairing successful with HID device"), 0x80);
+                                                Notify(PSTR("\r\nPairing successful with HID device"), 0x80);
 #endif
-                                        connectToHIDDevice = true; // Used to indicate to the BTHID service, that it should connect to this device
+                                                connectToHIDDevice = true; // Used to indicate to the BTHID service, that it should connect to this device
+                                        }
+                                } else {
+#ifdef DEBUG_USB_HOST
+                                        Notify(PSTR("\r\nPairing Failed: "), 0x80);
+                                        D_PrintHex<uint8_t > (hcibuf[2], 0x80);
+#endif
+                                        hci_disconnect(hci_handle);
+                                        hci_state = HCI_DISCONNECT_STATE;
                                 }
                                 break;
                                 /* We will just ignore the following events */
@@ -1088,7 +1110,7 @@ void BTD::hci_pin_code_request_reply() {
                 hcibuf[9] = 6; // Pin length is the length of the Bluetooth address
                 if(pairWiiUsingSync) {
 #ifdef DEBUG_USB_HOST
-                        Notify(PSTR("\r\nParing with Wii controller via SYNC"), 0x80);
+                        Notify(PSTR("\r\nPairing with Wii controller via SYNC"), 0x80);
 #endif
                         for(uint8_t i = 0; i < 6; i++)
                                 hcibuf[10 + i] = my_bdaddr[i]; // The pin is the Bluetooth dongles Bluetooth address backwards
