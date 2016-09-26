@@ -12,7 +12,7 @@
 
 #define TRG_ON 1
 #define TRG_OFF 0
-#define RAMPDOWN_STEPNUM 50
+//#define RAMPDOWN_STEPNUM 50
 #define _SET(var,bit) var |= _BV(bit)
 #define _CLEAR(var,bit) var &= ~_BV(bit)
 uint8_t t_TCCRnA;
@@ -88,10 +88,10 @@ void PWM_write5C(uint16_t data)
 }
 
 
-unsigned long ramp50ms_cal(unsigned long data) //data can't be greater than 800.
+unsigned long ramp_cal(unsigned long data, int rampdown_stepnum) //data can't be greater than 800. rampdown_stepnum
 {
 	if (data < 50) return 1;
-	return data / RAMPDOWN_STEPNUM;
+	return (data / rampdown_stepnum);
 }
 
 /***********p1***************/
@@ -105,6 +105,7 @@ unsigned long t1_PRETRG_DELAY_COUT_NUM;
 unsigned long t1_REAL_PW;
 unsigned long t1_POWER_RAMPSTEP;
 unsigned long t1_RAMPCOUNTER;
+int t1_RAMPSTEPNUM;
 char t1_RAMPDOWN_FLAG;
 
 inline static void t1_init(){
@@ -149,6 +150,7 @@ void t1_init_global()
 	t1_POWER_RAMPSTEP = 0;
 	t1_RAMPDOWN_FLAG = 0;
 	t1_RAMPCOUNTER = 0;
+	t1_RAMPSTEPNUM = 0;
 }
 
 void t1_operator()
@@ -172,26 +174,28 @@ void t1_operator()
 						t1_PHASE_COUT_NUM = t1_OFF_DUR;
 						t1_CUR_STATUS = TRG_OFF;
 						//digitalWrite(t1_PIN_, t1_TRG_OFF_VAL);
-						PWM_write5C(0);
+						// PWM_write5C(0);
 					}
 					else if (t1_ON_DUR > 0)
 					{
 						t1_PHASE_COUT_NUM = t1_ON_DUR;
 						t1_CUR_STATUS = TRG_ON;
 						//digitalWrite(t1_PIN_, t1_TRG_ON_VAL);
-						PWM_write5C(t1_REAL_PW);
+						// PWM_write5C(t1_REAL_PW);
 					}
 				}
+				if(t1_CUR_STATUS == TRG_ON) PWM_write5C(t1_REAL_PW);
+				if(t1_CUR_STATUS == TRG_OFF) PWM_write5C(0);
 			}
-			else if (1 == t1_RAMPDOWN_FLAG) 
+			else if (1 == t1_RAMPDOWN_FLAG)
 			{
-				if ((t1_REAL_PW > t1_POWER_RAMPSTEP)&&(t1_RAMPCOUNTER < 50)) 
+				if ((t1_REAL_PW > t1_POWER_RAMPSTEP)&&(t1_RAMPCOUNTER < t1_RAMPSTEPNUM))
 				{
 					t1_REAL_PW = t1_REAL_PW - t1_POWER_RAMPSTEP;
 					PWM_write5C(t1_REAL_PW);
 					t1_RAMPCOUNTER++;
 				}
-				else 
+				else
 				{
 					t1_RAMPDOWN_FLAG = 0;
 					PWM_write5C(0);
@@ -238,9 +242,10 @@ void PWM_PULSE_Class::p1_multipulses(unsigned long duration, float fq, unsigned 
 
 
 
-void PWM_PULSE_Class::p1_multipulses_ramp50ms(unsigned long duration, float fq, unsigned long p_width, unsigned long pre_trg_delay, int power)
+void PWM_PULSE_Class::p1_multipulses_ramp(unsigned long duration, float fq, unsigned long p_width, unsigned long pre_trg_delay, int power, int rampdown_stepnum)
 {
-	t1_POWER_RAMPSTEP = ramp50ms_cal(power * 8);
+	t1_RAMPSTEPNUM = rampdown_stepnum;
+	t1_POWER_RAMPSTEP = ramp_cal(power * 8, rampdown_stepnum);
 	t1_RAMPDOWN_FLAG = 1;
 	p1_multipulses(duration, fq, p_width, pre_trg_delay, power);
 }
@@ -251,22 +256,26 @@ void PWM_PULSE_Class::p1_constant( uint32_t duration, unsigned long pre_trg_dela
 	p1_multipulses(duration, fq, duration, pre_trg_delay, power);
 }
 
-void PWM_PULSE_Class::p1_constant_ramp50ms( uint32_t duration, unsigned long pre_trg_delay, int power)
+void PWM_PULSE_Class::p1_constant_ramp( uint32_t duration, unsigned long pre_trg_delay, int power, int rampdown_stepnum)
 {
-	t1_POWER_RAMPSTEP = ramp50ms_cal(power * 8);
+	t1_RAMPSTEPNUM = rampdown_stepnum;
+	t1_POWER_RAMPSTEP = ramp_cal(power * 8, rampdown_stepnum);
 	t1_RAMPDOWN_FLAG = 1;
 	p1_constant(duration, pre_trg_delay, power);
 }
 
 void PWM_PULSE_Class::p1_cancel()
 {
+	t1_PRETRG_DELAY_COUT_NUM = 0;
 	t1_RAMPDOWN_FLAG = 0;
 	t1_DUR_COUT_NUM = 0;
 }
 
-void PWM_PULSE_Class::p1_cancel_ramp50ms()
+void PWM_PULSE_Class::p1_cancel_ramp(int rampdown_stepnum)
 {
-	t1_POWER_RAMPSTEP = ramp50ms_cal(t1_REAL_PW);
+	t1_PRETRG_DELAY_COUT_NUM = 0;
+	t1_RAMPSTEPNUM = rampdown_stepnum;
+	t1_POWER_RAMPSTEP = ramp_cal(t1_REAL_PW,rampdown_stepnum);
 	t1_RAMPDOWN_FLAG = 1;
 	t1_DUR_COUT_NUM = 0;
 }
@@ -283,6 +292,7 @@ unsigned long t3_PRETRG_DELAY_COUT_NUM;
 unsigned long t3_REAL_PW;
 unsigned long t3_POWER_RAMPSTEP;
 unsigned long t3_RAMPCOUNTER;
+int t3_RAMPSTEPNUM;
 char t3_RAMPDOWN_FLAG;
 
 inline static void t3_init(){
@@ -327,6 +337,7 @@ void t3_init_global()
 	t3_POWER_RAMPSTEP = 0;
 	t3_RAMPDOWN_FLAG = 0;
 	t3_RAMPCOUNTER = 0;
+	t3_RAMPSTEPNUM = 0;
 }
 
 void t3_operator()
@@ -350,26 +361,28 @@ void t3_operator()
 						t3_PHASE_COUT_NUM = t3_OFF_DUR;
 						t3_CUR_STATUS = TRG_OFF;
 						//digitalWrite(t3_PIN_, t3_TRG_OFF_VAL);
-						PWM_write5B(0);
+						// PWM_write5B(0);
 					}
 					else if (t3_ON_DUR > 0)
 					{
 						t3_PHASE_COUT_NUM = t3_ON_DUR;
 						t3_CUR_STATUS = TRG_ON;
 						//digitalWrite(t3_PIN_, t3_TRG_ON_VAL);
-						PWM_write5B(t3_REAL_PW);
+						// PWM_write5B(t3_REAL_PW);
 					}
 				}
+				if(t3_CUR_STATUS == TRG_ON) PWM_write5B(t3_REAL_PW);
+				if(t3_CUR_STATUS == TRG_OFF) PWM_write5B(0);
 			}
-			else if (1 == t3_RAMPDOWN_FLAG) 
+			else if (1 == t3_RAMPDOWN_FLAG)
 			{
-				if ((t3_REAL_PW > t3_POWER_RAMPSTEP)&&(t3_RAMPCOUNTER < 50)) 
+				if ((t3_REAL_PW > t3_POWER_RAMPSTEP)&&(t3_RAMPCOUNTER < t3_RAMPSTEPNUM))
 				{
 					t3_REAL_PW = t3_REAL_PW - t3_POWER_RAMPSTEP;
 					PWM_write5B(t3_REAL_PW);
 					t3_RAMPCOUNTER++;
 				}
-				else 
+				else
 				{
 					t3_RAMPDOWN_FLAG = 0;
 					PWM_write5B(0);
@@ -414,9 +427,10 @@ void PWM_PULSE_Class::p2_multipulses(unsigned long duration, float fq, unsigned 
 	_t3_start(PRE_SCALE_64DIV);
 }
 
-void PWM_PULSE_Class::p2_multipulses_ramp50ms(unsigned long duration, float fq, unsigned long p_width, unsigned long pre_trg_delay, int power)
+void PWM_PULSE_Class::p2_multipulses_ramp(unsigned long duration, float fq, unsigned long p_width, unsigned long pre_trg_delay, int power,int rampdown_stepnum)
 {
-	t3_POWER_RAMPSTEP = ramp50ms_cal(power * 8);
+	t3_RAMPSTEPNUM = rampdown_stepnum;
+	t3_POWER_RAMPSTEP = ramp_cal(power * 8, rampdown_stepnum);
 	t3_RAMPDOWN_FLAG = 1;
 	p2_multipulses(duration, fq, p_width, pre_trg_delay, power);
 }
@@ -427,22 +441,26 @@ void PWM_PULSE_Class::p2_constant( uint32_t duration, unsigned long pre_trg_dela
 	p2_multipulses(duration, fq, duration, pre_trg_delay, power);
 }
 
-void PWM_PULSE_Class::p2_constant_ramp50ms( uint32_t duration, unsigned long pre_trg_delay, int power)
+void PWM_PULSE_Class::p2_constant_ramp( uint32_t duration, unsigned long pre_trg_delay, int power, int rampdown_stepnum)
 {
-	t3_POWER_RAMPSTEP = ramp50ms_cal(power * 8);
+	t3_RAMPSTEPNUM = rampdown_stepnum;
+	t3_POWER_RAMPSTEP = ramp_cal(power * 8, rampdown_stepnum);
 	t3_RAMPDOWN_FLAG = 1;
 	p2_constant(duration, pre_trg_delay, power);
 }
 
 void PWM_PULSE_Class::p2_cancel()
 {
+	t3_PRETRG_DELAY_COUT_NUM = 0;
 	t3_RAMPDOWN_FLAG = 0;
 	t3_DUR_COUT_NUM = 0;
 }
 
-void PWM_PULSE_Class::p2_cancel_ramp50ms()
+void PWM_PULSE_Class::p2_cancel_ramp(int rampdown_stepnum)
 {
-	t3_POWER_RAMPSTEP = ramp50ms_cal(t3_REAL_PW);
+	t3_PRETRG_DELAY_COUT_NUM = 0;
+	t3_RAMPSTEPNUM = rampdown_stepnum;
+	t3_POWER_RAMPSTEP = ramp_cal(t3_REAL_PW, rampdown_stepnum);
 	t3_RAMPDOWN_FLAG = 1;
 	t3_DUR_COUT_NUM = 0;
 }
@@ -458,6 +476,7 @@ unsigned long t4_PRETRG_DELAY_COUT_NUM;
 unsigned long t4_REAL_PW;
 unsigned long t4_POWER_RAMPSTEP;
 unsigned long t4_RAMPCOUNTER;
+int t4_RAMPSTEPNUM;
 char t4_RAMPDOWN_FLAG;
 
 inline static void t4_init(){
@@ -502,6 +521,7 @@ void t4_init_global()
 	t4_POWER_RAMPSTEP = 0;
 	t4_RAMPDOWN_FLAG = 0;
 	t4_RAMPCOUNTER = 0;
+	t4_RAMPSTEPNUM = 0;
 }
 
 void t4_operator()
@@ -525,26 +545,28 @@ void t4_operator()
 						t4_PHASE_COUT_NUM = t4_OFF_DUR;
 						t4_CUR_STATUS = TRG_OFF;
 						//digitalWrite(t4_PIN_, t4_TRG_OFF_VAL);
-						PWM_write5A(0);
+						// PWM_write5A(0);
 					}
 					else if (t4_ON_DUR > 0)
 					{
 						t4_PHASE_COUT_NUM = t4_ON_DUR;
 						t4_CUR_STATUS = TRG_ON;
 						//digitalWrite(t4_PIN_, t4_TRG_ON_VAL);
-						PWM_write5A(t4_REAL_PW);
+						// PWM_write5A(t4_REAL_PW);
 					}
 				}
+				if(t4_CUR_STATUS == TRG_ON) PWM_write5A(t4_REAL_PW);
+				if(t4_CUR_STATUS == TRG_OFF) PWM_write5A(0);
 			}
-			else if (1 == t4_RAMPDOWN_FLAG) 
+			else if (1 == t4_RAMPDOWN_FLAG)
 			{
-				if ((t4_REAL_PW > t4_POWER_RAMPSTEP)&&(t4_RAMPCOUNTER < 50)) 
+				if ((t4_REAL_PW > t4_POWER_RAMPSTEP)&&(t4_RAMPCOUNTER < t4_RAMPSTEPNUM))
 				{
 					t4_REAL_PW = t4_REAL_PW - t4_POWER_RAMPSTEP;
 					PWM_write5A(t4_REAL_PW);
 					t4_RAMPCOUNTER++;
 				}
-				else 
+				else
 				{
 					t4_RAMPDOWN_FLAG = 0;
 					PWM_write5A(0);
@@ -589,9 +611,10 @@ void PWM_PULSE_Class::p3_multipulses(unsigned long duration, float fq, unsigned 
 	_t4_start(PRE_SCALE_64DIV);
 }
 
-void PWM_PULSE_Class::p3_multipulses_ramp50ms(unsigned long duration, float fq, unsigned long p_width, unsigned long pre_trg_delay, int power)
+void PWM_PULSE_Class::p3_multipulses_ramp(unsigned long duration, float fq, unsigned long p_width, unsigned long pre_trg_delay, int power,int rampdown_stepnum)
 {
-	t4_POWER_RAMPSTEP = ramp50ms_cal(power * 8);
+	t4_RAMPSTEPNUM = rampdown_stepnum;
+	t4_POWER_RAMPSTEP = ramp_cal(power * 8, rampdown_stepnum);
 	t4_RAMPDOWN_FLAG = 1;
 	p3_multipulses(duration, fq, p_width, pre_trg_delay, power);
 }
@@ -602,22 +625,26 @@ void PWM_PULSE_Class::p3_constant( uint32_t duration, unsigned long pre_trg_dela
 	p3_multipulses(duration, fq, duration, pre_trg_delay, power);
 }
 
-void PWM_PULSE_Class::p3_constant_ramp50ms( uint32_t duration, unsigned long pre_trg_delay, int power)
+void PWM_PULSE_Class::p3_constant_ramp( uint32_t duration, unsigned long pre_trg_delay, int power,int rampdown_stepnum)
 {
-	t4_POWER_RAMPSTEP = ramp50ms_cal(power * 8);
+	t4_RAMPSTEPNUM = rampdown_stepnum;
+	t4_POWER_RAMPSTEP = ramp_cal(power * 8, rampdown_stepnum);
 	t4_RAMPDOWN_FLAG = 1;
 	p3_constant(duration, pre_trg_delay, power);
 }
 
 void PWM_PULSE_Class::p3_cancel()
 {
+	t4_PRETRG_DELAY_COUT_NUM = 0;
 	t4_RAMPDOWN_FLAG = 0;
 	t4_DUR_COUT_NUM = 0;
 }
 
-void PWM_PULSE_Class::p3_cancel_ramp50ms()
+void PWM_PULSE_Class::p3_cancel_ramp(int rampdown_stepnum)
 {
-	t4_POWER_RAMPSTEP = ramp50ms_cal(t4_REAL_PW);
+	t4_PRETRG_DELAY_COUT_NUM = 0;
+	t4_RAMPSTEPNUM = rampdown_stepnum;
+	t4_POWER_RAMPSTEP = ramp_cal(t4_REAL_PW, rampdown_stepnum);
 	t4_RAMPDOWN_FLAG = 1;
 	t4_DUR_COUT_NUM = 0;
 }

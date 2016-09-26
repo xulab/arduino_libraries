@@ -7,8 +7,9 @@
 uint16_t dur = 1000;
 float fq = 10;
 uint16_t p_width = 20;
-uint16_t pre_delay = 100;
+uint16_t pre_delay = 0;
 uint16_t power = 100;
+int ramp_step=50;
 void setup() {
 	Serial.begin(115200);
   // put your setup code here, to run once:
@@ -26,8 +27,8 @@ void loop() {
   // delay(1);
   // digitalWrite(43, LOW);
 
-  PWM_PULSE.p1_multipulses(dur, fq, p_width, pre_delay, power);
-  delay(dur*2);
+  // PWM_PULSE.p1_multipulses(dur, fq, p_width, pre_delay, power);
+  // delay(dur*2);
 
 
   // digitalWrite(43, HIGH);
@@ -46,24 +47,29 @@ void loop() {
   // delay(dur*2);
 
 
+  // digitalWrite(43, HIGH);
+  // delay(1);
+  // digitalWrite(43, LOW);
+	//
+  // //PWM_PULSE.p3_constant_ramp(dur, pre_delay, power, ramp_step);
+  // PWM_PULSE.p1_multipulses(dur, fq, p_width, pre_delay, power);
+  // delay(dur/2);
+  // PWM_PULSE.p3_cancel();
+	//
+  // delay(dur);
+
+
   digitalWrite(43, HIGH);
   delay(1);
   digitalWrite(43, LOW);
 
-  PWM_PULSE.p1_constant_ramp50ms(dur, pre_delay, power);
+  PWM_PULSE.p1_constant_ramp(dur, pre_delay, power, ramp_step);
+  PWM_PULSE.p2_constant_ramp(dur, pre_delay, power, ramp_step);
+  PWM_PULSE.p3_constant_ramp(dur, pre_delay, power, ramp_step);
   delay(dur/2);
-  // PWM_PULSE.p1_cancel();
-
-  delay(dur);
-
-
-  digitalWrite(43, HIGH);
-  delay(1);
-  digitalWrite(43, LOW);
-
-  PWM_PULSE.p1_constant_ramp50ms(dur, pre_delay, power);
-  delay(dur/2);
-  // PWM_PULSE.p1_cancel_ramp50ms();
+  // PWM_PULSE.p1_cancel_ramp(ramp_step);
+  // PWM_PULSE.p2_cancel_ramp(ramp_step);
+  // PWM_PULSE.p3_cancel_ramp(ramp_step);
 
   delay(dur);
 
