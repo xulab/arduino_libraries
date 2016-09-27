@@ -108,6 +108,12 @@ unsigned long t1_RAMPCOUNTER;
 int t1_RAMPSTEPNUM;
 char t1_RAMPDOWN_FLAG;
 
+
+inline static void _set_t1_isi(uint16_t isi){
+	OCR1AH = isi >> 8;
+	OCR1AL = isi;
+}
+
 inline static void t1_init(){
 	t_TCCRnB = TCCR1B;
 	_CLEAR(t_TCCRnB, CS10); _CLEAR(t_TCCRnB, CS11); _CLEAR(t_TCCRnB, CS12); //Close clock source.
@@ -118,27 +124,22 @@ inline static void t1_init(){
 	TCNT1H = 0; //set TCNT1 to 0
 	TCNT1L = 0; //set TCNT1 to 0
 	TIMSK1 |= _BV(OCIE1A); // Output Compare A Match Interrupt Enable
+	_set_t1_isi(CTC_ISI);
 }
 
 
 inline static void _t1_stop(){
 	TCCR1B &= ~PRE_SCALE_MASK;
-	OCR1AH = 0;
-	OCR1AL = 0;
+	// OCR1AH = 0;
+	// OCR1AL = 0;
 	TCNT1H = 0; //set TCNT1 to 0
 	TCNT1L = 0; //set TCNT1 to 0
 }
 
 inline void _t1_start(byte pre_scale){
-	t1_init();
+	// t1_init();
 	TCCR1B |= pre_scale; //set prescale
 }
-
-inline static void _set_t1_isi(uint16_t isi){
-	OCR1AH = isi >> 8;
-	OCR1AL = isi;
-}
-
 void t1_init_global()
 {
 	t1_ON_DUR = 0;
@@ -236,7 +237,6 @@ void PWM_PULSE_Class::p1_multipulses(unsigned long duration, float fq, unsigned 
 
 	t1_PHASE_COUT_NUM = t1_ON_DUR;
 	t1_CUR_STATUS = TRG_ON;
-	_set_t1_isi(CTC_ISI);
 	_t1_start(PRE_SCALE_64DIV);
 }
 
@@ -295,6 +295,11 @@ unsigned long t3_RAMPCOUNTER;
 int t3_RAMPSTEPNUM;
 char t3_RAMPDOWN_FLAG;
 
+inline static void _set_t3_isi(uint16_t isi){
+	OCR3AH = isi >> 8;
+	OCR3AL = isi;
+}
+
 inline static void t3_init(){
 	t_TCCRnB = TCCR3B;
 	_CLEAR(t_TCCRnB, CS30); _CLEAR(t_TCCRnB, CS31); _CLEAR(t_TCCRnB, CS32); //Close clock source.
@@ -305,26 +310,23 @@ inline static void t3_init(){
 	TCNT3H = 0; //set TCNT3 to 0
 	TCNT3L = 0; //set TCNT3 to 0
 	TIMSK3 |= _BV(OCIE3A); // Output Compare A Match Interrupt Enable
+	_set_t3_isi(CTC_ISI);
 }
 
 
 inline static void _t3_stop(){
 	TCCR3B &= ~PRE_SCALE_MASK;
-	OCR3AH = 0;
-	OCR3AL = 0;
+	// OCR3AH = 0;
+	// OCR3AL = 0;
 	TCNT3H = 0; //set TCNT3 to 0
 	TCNT3L = 0; //set TCNT3 to 0
 }
 
 inline void _t3_start(byte pre_scale){
-	t3_init();
+	// t3_init();
 	TCCR3B |= pre_scale; //set prescale
 }
 
-inline static void _set_t3_isi(uint16_t isi){
-	OCR3AH = isi >> 8;
-	OCR3AL = isi;
-}
 
 void t3_init_global()
 {
@@ -423,7 +425,6 @@ void PWM_PULSE_Class::p2_multipulses(unsigned long duration, float fq, unsigned 
 
 	t3_PHASE_COUT_NUM = t3_ON_DUR;
 	t3_CUR_STATUS = TRG_ON;
-	_set_t3_isi(CTC_ISI);
 	_t3_start(PRE_SCALE_64DIV);
 }
 
@@ -479,6 +480,12 @@ unsigned long t4_RAMPCOUNTER;
 int t4_RAMPSTEPNUM;
 char t4_RAMPDOWN_FLAG;
 
+
+inline static void _set_t4_isi(uint16_t isi){
+	OCR4AH = isi >> 8;
+	OCR4AL = isi;
+}
+
 inline static void t4_init(){
 	t_TCCRnB = TCCR4B;
 	_CLEAR(t_TCCRnB, CS40); _CLEAR(t_TCCRnB, CS41); _CLEAR(t_TCCRnB, CS42); //Close clock source.
@@ -489,26 +496,23 @@ inline static void t4_init(){
 	TCNT4H = 0; //set TCNT4 to 0
 	TCNT4L = 0; //set TCNT4 to 0
 	TIMSK4 |= _BV(OCIE4A); // Output Compare A Match Interrupt Enable
+	_set_t4_isi(CTC_ISI);
 }
 
 
 inline static void _t4_stop(){
 	TCCR4B &= ~PRE_SCALE_MASK;
-	OCR4AH = 0;
-	OCR4AL = 0;
+	// OCR4AH = 0;
+	// OCR4AL = 0;
 	TCNT4H = 0; //set TCNT4 to 0
 	TCNT4L = 0; //set TCNT4 to 0
 }
 
 inline void _t4_start(byte pre_scale){
-	t4_init();
+	// t4_init();
 	TCCR4B |= pre_scale; //set prescale
 }
 
-inline static void _set_t4_isi(uint16_t isi){
-	OCR4AH = isi >> 8;
-	OCR4AL = isi;
-}
 
 void t4_init_global()
 {
@@ -607,7 +611,6 @@ void PWM_PULSE_Class::p3_multipulses(unsigned long duration, float fq, unsigned 
 
 	t4_PHASE_COUT_NUM = t4_ON_DUR;
 	t4_CUR_STATUS = TRG_ON;
-	_set_t4_isi(CTC_ISI);
 	_t4_start(PRE_SCALE_64DIV);
 }
 
@@ -654,6 +657,9 @@ void PWM_PULSE_Class::p3_cancel_ramp(int rampdown_stepnum)
 void PWM_PULSE_Class::init()
 {
 	t5_PWM_init();
+	t1_init();
+	t3_init();
+	t4_init();
 	sei();
 
 }
