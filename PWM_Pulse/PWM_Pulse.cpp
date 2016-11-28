@@ -88,9 +88,9 @@ void PWM_write5C(uint16_t data)
 }
 
 
-unsigned long ramp_cal(unsigned long data, int rampdown_stepnum) //data can't be greater than 800. rampdown_stepnum
+float ramp_cal(float data, float rampdown_stepnum) //data can't be greater than 800. rampdown_stepnum
 {
-	if (data < 50) return 1;
+	//if (data < 100) return 1;
 	return (data / rampdown_stepnum);
 }
 
@@ -102,8 +102,8 @@ unsigned long t1_PHASE_COUT_NUM;
 unsigned long t1_DUR_COUT_NUM;
 unsigned long t1_CUR_STATUS;
 unsigned long t1_PRETRG_DELAY_COUT_NUM;
-unsigned long t1_REAL_PW;
-unsigned long t1_POWER_RAMPSTEP;
+float t1_REAL_PW;
+float t1_POWER_RAMPSTEP;
 unsigned long t1_RAMPCOUNTER;
 int t1_RAMPSTEPNUM;
 char t1_RAMPDOWN_FLAG;
@@ -289,8 +289,8 @@ unsigned long t3_PHASE_COUT_NUM;
 unsigned long t3_DUR_COUT_NUM;
 unsigned long t3_CUR_STATUS;
 unsigned long t3_PRETRG_DELAY_COUT_NUM;
-unsigned long t3_REAL_PW;
-unsigned long t3_POWER_RAMPSTEP;
+float t3_REAL_PW;
+float t3_POWER_RAMPSTEP;
 unsigned long t3_RAMPCOUNTER;
 int t3_RAMPSTEPNUM;
 char t3_RAMPDOWN_FLAG;
@@ -474,8 +474,8 @@ unsigned long t4_PHASE_COUT_NUM;
 unsigned long t4_DUR_COUT_NUM;
 unsigned long t4_CUR_STATUS;
 unsigned long t4_PRETRG_DELAY_COUT_NUM;
-unsigned long t4_REAL_PW;
-unsigned long t4_POWER_RAMPSTEP;
+float t4_REAL_PW;
+float t4_POWER_RAMPSTEP;
 unsigned long t4_RAMPCOUNTER;
 int t4_RAMPSTEPNUM;
 char t4_RAMPDOWN_FLAG;
