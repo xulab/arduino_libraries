@@ -9,6 +9,9 @@
 #define CTC_ISI 250 //equals to 1ms(250*4us)
 #define CTC_FACTOR (1000/4/CTC_ISI)
 #define PRE_SCALE_MASK (_BV(CS10) | _BV(CS11) | _BV(CS12))
+#define PWM_PERIOD 800
+#define PWM_LASER_DELAY 0 //us
+#define PWM_PERIOD_OFFSET (PWM_LASER_DELAY * 16)
 
 #define TRG_ON 1
 #define TRG_OFF 0
@@ -47,8 +50,8 @@ inline static void t5_PWM_init() {
 																		  //_SET(t_TCCRnB, WGM52); _CLEAR(t_TCCRnB, WGM53); //Fast PWM, 10bit;
 	_SET(t_TCCRnB, WGM52); _SET(t_TCCRnB, WGM53); //Fast PWM, TOP: ICR5;
 
-	ICR5H = 800 >> 8;
-	ICR5L = 800; //period of PWM is seted to 50us;
+	ICR5H = (PWM_PERIOD + PWM_PERIOD_OFFSET) >> 8;
+	ICR5L = PWM_PERIOD + PWM_PERIOD_OFFSET; //period of PWM is seted to 50us;
 
 	OCR5AH = 0;
 	OCR5AL = 0;
@@ -69,6 +72,7 @@ inline static void t5_PWM_init() {
 
 void PWM_write5A(uint16_t data)
 {
+	data = data + PWM_PERIOD_OFFSET;
 	OCR5AH = data >> 8;
 	OCR5AL = data;
 }
@@ -76,6 +80,7 @@ void PWM_write5A(uint16_t data)
 
 void PWM_write5B(uint16_t data)
 {
+	data = data + PWM_PERIOD_OFFSET;
 	OCR5BH = data >> 8;
 	OCR5BL = data;
 }
@@ -83,6 +88,7 @@ void PWM_write5B(uint16_t data)
 
 void PWM_write5C(uint16_t data)
 {
+	data = data + PWM_PERIOD_OFFSET;
 	OCR5CH = data >> 8;
 	OCR5CL = data;
 }
@@ -90,7 +96,6 @@ void PWM_write5C(uint16_t data)
 
 float ramp_cal(float data, float rampdown_stepnum) //data can't be greater than 800. rampdown_stepnum
 {
-	//if (data < 100) return 1;
 	return (data / rampdown_stepnum);
 }
 
@@ -100,7 +105,9 @@ unsigned long t1_ON_DUR;
 unsigned long t1_OFF_DUR;
 unsigned long t1_PHASE_COUT_NUM;
 unsigned long t1_DUR_COUT_NUM;
+unsigned long t1_TIMEPASSED;
 unsigned long t1_CUR_STATUS;
+unsigned long t1_FLIPTIME;
 unsigned long t1_PRETRG_DELAY_COUT_NUM;
 float t1_REAL_PW;
 float t1_POWER_RAMPSTEP;
@@ -130,14 +137,11 @@ inline static void t1_init(){
 
 inline static void _t1_stop(){
 	TCCR1B &= ~PRE_SCALE_MASK;
-	// OCR1AH = 0;
-	// OCR1AL = 0;
 	TCNT1H = 0; //set TCNT1 to 0
 	TCNT1L = 0; //set TCNT1 to 0
 }
 
 inline void _t1_start(byte pre_scale){
-	// t1_init();
 	TCCR1B |= pre_scale; //set prescale
 }
 void t1_init_global()
@@ -146,7 +150,9 @@ void t1_init_global()
 	t1_OFF_DUR = 0;
 	t1_PHASE_COUT_NUM = 0;
 	t1_DUR_COUT_NUM = 0;
+ 	t1_TIMEPASSED = 0;
 	t1_PRETRG_DELAY_COUT_NUM = 0;
+	t1_FLIPTIME = 0;
 	t1_REAL_PW = 0;
 	t1_POWER_RAMPSTEP = 0;
 	t1_RAMPDOWN_FLAG = 0;
@@ -156,60 +162,50 @@ void t1_init_global()
 
 void t1_operator()
 {
-	if (t1_PRETRG_DELAY_COUT_NUM > 0){
-		t1_PRETRG_DELAY_COUT_NUM--;
-		if (t1_PRETRG_DELAY_COUT_NUM == 0) PWM_write5C(t1_REAL_PW);
+ 	t1_TIMEPASSED++;
+	if(t1_TIMEPASSED < t1_PRETRG_DELAY_COUT_NUM) return;
+	else if (t1_TIMEPASSED == t1_PRETRG_DELAY_COUT_NUM)
+	{
+		PWM_write5C(t1_REAL_PW);
 	}
-	else{
-			if (t1_DUR_COUT_NUM > 0)
-			{
-				t1_DUR_COUT_NUM--;
-				if (t1_PHASE_COUT_NUM > 0)
-				{
-					t1_PHASE_COUT_NUM--;
-				}
-				else
-				{
-					if ((t1_CUR_STATUS == TRG_ON) && (t1_OFF_DUR > 0))
-					{
-						t1_PHASE_COUT_NUM = t1_OFF_DUR;
-						t1_CUR_STATUS = TRG_OFF;
-						//digitalWrite(t1_PIN_, t1_TRG_OFF_VAL);
-						// PWM_write5C(0);
-					}
-					else if (t1_ON_DUR > 0)
-					{
-						t1_PHASE_COUT_NUM = t1_ON_DUR;
-						t1_CUR_STATUS = TRG_ON;
-						//digitalWrite(t1_PIN_, t1_TRG_ON_VAL);
-						// PWM_write5C(t1_REAL_PW);
-					}
-				}
-				if(t1_CUR_STATUS == TRG_ON) PWM_write5C(t1_REAL_PW);
-				if(t1_CUR_STATUS == TRG_OFF) PWM_write5C(0);
-			}
-			else if (1 == t1_RAMPDOWN_FLAG)
-			{
-				if ((t1_REAL_PW > t1_POWER_RAMPSTEP)&&(t1_RAMPCOUNTER < t1_RAMPSTEPNUM))
-				{
-					t1_REAL_PW = t1_REAL_PW - t1_POWER_RAMPSTEP;
-					PWM_write5C(t1_REAL_PW);
-					t1_RAMPCOUNTER++;
-				}
-				else
-				{
-					t1_RAMPDOWN_FLAG = 0;
-					PWM_write5C(0);
-				}
-			}
-			else
-			{
-				_t1_stop();
-				PWM_write5C(0);
-				//digitalWrite(t1_PIN_, t1_TRG_OFF_VAL);
-				t1_init_global();
-			}
-        }
+
+	if (t1_TIMEPASSED < (t1_PRETRG_DELAY_COUT_NUM + t1_DUR_COUT_NUM))
+	{
+		if(t1_TIMEPASSED < t1_FLIPTIME) return;
+		else if((t1_CUR_STATUS == TRG_ON) && (t1_OFF_DUR > 0))
+		{
+			t1_CUR_STATUS = TRG_OFF;
+			t1_FLIPTIME = t1_FLIPTIME + t1_OFF_DUR;
+			PWM_write5C(0);
+		}
+		else if((t1_CUR_STATUS == TRG_OFF) && (t1_ON_DUR > 0))
+		{
+			t1_CUR_STATUS = TRG_ON;
+			t1_FLIPTIME = t1_FLIPTIME + t1_ON_DUR;
+			PWM_write5C(t1_REAL_PW);
+		}
+	}
+	else if (1 == t1_RAMPDOWN_FLAG)
+	{
+		if ((t1_REAL_PW > t1_POWER_RAMPSTEP)&&(t1_RAMPCOUNTER < t1_RAMPSTEPNUM))
+		{
+			t1_REAL_PW = t1_REAL_PW - t1_POWER_RAMPSTEP;
+			PWM_write5C(t1_REAL_PW);
+			t1_RAMPCOUNTER++;
+		}
+		else
+		{
+			_t1_stop();
+			PWM_write5C(0);
+			t1_init_global();
+		}
+	}
+	else
+	{
+		_t1_stop();
+		PWM_write5C(0);
+		t1_init_global();
+	}
 }
 
 ISR(TIMER1_COMPA_vect)
@@ -229,14 +225,16 @@ void PWM_PULSE_Class::p1_multipulses(unsigned long duration, float fq, unsigned 
 	if (duration == 0) return;
 
 	//t1_PIN_ = pin;
-	t1_DUR_COUT_NUM = duration * CTC_FACTOR - 1;
+	t1_DUR_COUT_NUM = duration * CTC_FACTOR;
 	t1_PRETRG_DELAY_COUT_NUM = pre_trg_delay * CTC_FACTOR;
 
-	t1_ON_DUR = (p_width > 0) ? (p_width * CTC_FACTOR - 1) : 0;
-	t1_OFF_DUR = (CYCLE > p_width) ? ((CYCLE - p_width) * CTC_FACTOR - 1) : 0;
+	t1_ON_DUR = (p_width > 0) ? (p_width * CTC_FACTOR) : 0;
+	t1_OFF_DUR = (CYCLE > p_width) ? ((CYCLE - p_width) * CTC_FACTOR) : 0;
 
 	t1_PHASE_COUT_NUM = t1_ON_DUR;
 	t1_CUR_STATUS = TRG_ON;
+	t1_FLIPTIME = t1_PRETRG_DELAY_COUT_NUM + t1_ON_DUR;
+	if (t1_PRETRG_DELAY_COUT_NUM == 0) PWM_write5C(t1_REAL_PW);
 	_t1_start(PRE_SCALE_64DIV);
 }
 
@@ -282,18 +280,20 @@ void PWM_PULSE_Class::p1_cancel_ramp(int rampdown_stepnum)
 
 /***********p2***************/
 /***********p2***************/
-
 unsigned long t3_ON_DUR;
 unsigned long t3_OFF_DUR;
 unsigned long t3_PHASE_COUT_NUM;
 unsigned long t3_DUR_COUT_NUM;
+unsigned long t3_TIMEPASSED;
 unsigned long t3_CUR_STATUS;
+unsigned long t3_FLIPTIME;
 unsigned long t3_PRETRG_DELAY_COUT_NUM;
 float t3_REAL_PW;
 float t3_POWER_RAMPSTEP;
 unsigned long t3_RAMPCOUNTER;
 int t3_RAMPSTEPNUM;
 char t3_RAMPDOWN_FLAG;
+
 
 inline static void _set_t3_isi(uint16_t isi){
 	OCR3AH = isi >> 8;
@@ -303,7 +303,7 @@ inline static void _set_t3_isi(uint16_t isi){
 inline static void t3_init(){
 	t_TCCRnB = TCCR3B;
 	_CLEAR(t_TCCRnB, CS30); _CLEAR(t_TCCRnB, CS31); _CLEAR(t_TCCRnB, CS32); //Close clock source.
-	_SET(t_TCCRnB, WGM32); _CLEAR(t_TCCRnB, WGM33); //CTC mode, TOP: OCR1A;
+	_SET(t_TCCRnB, WGM32); _CLEAR(t_TCCRnB, WGM33); //CTC mode, TOP: OCR3A;
 	TCCR3B = t_TCCRnB;
 	TCCR3A = 0;
 	TCCR3C = 0;
@@ -316,25 +316,22 @@ inline static void t3_init(){
 
 inline static void _t3_stop(){
 	TCCR3B &= ~PRE_SCALE_MASK;
-	// OCR3AH = 0;
-	// OCR3AL = 0;
 	TCNT3H = 0; //set TCNT3 to 0
 	TCNT3L = 0; //set TCNT3 to 0
 }
 
 inline void _t3_start(byte pre_scale){
-	// t3_init();
 	TCCR3B |= pre_scale; //set prescale
 }
-
-
 void t3_init_global()
 {
 	t3_ON_DUR = 0;
 	t3_OFF_DUR = 0;
 	t3_PHASE_COUT_NUM = 0;
 	t3_DUR_COUT_NUM = 0;
+ 	t3_TIMEPASSED = 0;
 	t3_PRETRG_DELAY_COUT_NUM = 0;
+	t3_FLIPTIME = 0;
 	t3_REAL_PW = 0;
 	t3_POWER_RAMPSTEP = 0;
 	t3_RAMPDOWN_FLAG = 0;
@@ -344,60 +341,50 @@ void t3_init_global()
 
 void t3_operator()
 {
-	if (t3_PRETRG_DELAY_COUT_NUM > 0){
-		t3_PRETRG_DELAY_COUT_NUM--;
-		if (t3_PRETRG_DELAY_COUT_NUM == 0) PWM_write5B(t3_REAL_PW);
+ 	t3_TIMEPASSED++;
+	if(t3_TIMEPASSED < t3_PRETRG_DELAY_COUT_NUM) return;
+	else if (t3_TIMEPASSED == t3_PRETRG_DELAY_COUT_NUM)
+	{
+		PWM_write5B(t3_REAL_PW);
 	}
-	else{
-			if (t3_DUR_COUT_NUM > 0)
-			{
-				t3_DUR_COUT_NUM--;
-				if (t3_PHASE_COUT_NUM > 0)
-				{
-					t3_PHASE_COUT_NUM--;
-				}
-				else
-				{
-					if ((t3_CUR_STATUS == TRG_ON) && (t3_OFF_DUR > 0))
-					{
-						t3_PHASE_COUT_NUM = t3_OFF_DUR;
-						t3_CUR_STATUS = TRG_OFF;
-						//digitalWrite(t3_PIN_, t3_TRG_OFF_VAL);
-						// PWM_write5B(0);
-					}
-					else if (t3_ON_DUR > 0)
-					{
-						t3_PHASE_COUT_NUM = t3_ON_DUR;
-						t3_CUR_STATUS = TRG_ON;
-						//digitalWrite(t3_PIN_, t3_TRG_ON_VAL);
-						// PWM_write5B(t3_REAL_PW);
-					}
-				}
-				if(t3_CUR_STATUS == TRG_ON) PWM_write5B(t3_REAL_PW);
-				if(t3_CUR_STATUS == TRG_OFF) PWM_write5B(0);
-			}
-			else if (1 == t3_RAMPDOWN_FLAG)
-			{
-				if ((t3_REAL_PW > t3_POWER_RAMPSTEP)&&(t3_RAMPCOUNTER < t3_RAMPSTEPNUM))
-				{
-					t3_REAL_PW = t3_REAL_PW - t3_POWER_RAMPSTEP;
-					PWM_write5B(t3_REAL_PW);
-					t3_RAMPCOUNTER++;
-				}
-				else
-				{
-					t3_RAMPDOWN_FLAG = 0;
-					PWM_write5B(0);
-				}
-			}
-			else
-			{
-				_t3_stop();
-				PWM_write5B(0);
-				//digitalWrite(t3_PIN_, t3_TRG_OFF_VAL);
-				t3_init_global();
-			}
-        }
+
+	if (t3_TIMEPASSED < (t3_PRETRG_DELAY_COUT_NUM + t3_DUR_COUT_NUM))
+	{
+		if(t3_TIMEPASSED < t3_FLIPTIME) return;
+		else if((t3_CUR_STATUS == TRG_ON) && (t3_OFF_DUR > 0))
+		{
+			t3_CUR_STATUS = TRG_OFF;
+			t3_FLIPTIME = t3_FLIPTIME + t3_OFF_DUR;
+			PWM_write5B(0);
+		}
+		else if((t3_CUR_STATUS == TRG_OFF) && (t3_ON_DUR > 0))
+		{
+			t3_CUR_STATUS = TRG_ON;
+			t3_FLIPTIME = t3_FLIPTIME + t3_ON_DUR;
+			PWM_write5B(t3_REAL_PW);
+		}
+	}
+	else if (1 == t3_RAMPDOWN_FLAG)
+	{
+		if ((t3_REAL_PW > t3_POWER_RAMPSTEP)&&(t3_RAMPCOUNTER < t3_RAMPSTEPNUM))
+		{
+			t3_REAL_PW = t3_REAL_PW - t3_POWER_RAMPSTEP;
+			PWM_write5B(t3_REAL_PW);
+			t3_RAMPCOUNTER++;
+		}
+		else
+		{
+			_t3_stop();
+			PWM_write5B(0);
+			t3_init_global();
+		}
+	}
+	else
+	{
+		_t3_stop();
+		PWM_write5B(0);
+		t3_init_global();
+	}
 }
 
 ISR(TIMER3_COMPA_vect)
@@ -416,19 +403,22 @@ void PWM_PULSE_Class::p2_multipulses(unsigned long duration, float fq, unsigned 
 	t3_REAL_PW = power * 8;
 	if (duration == 0) return;
 
-	//t3_PIN_ = pin;
-	t3_DUR_COUT_NUM = duration * CTC_FACTOR - 1;
+	t3_DUR_COUT_NUM = duration * CTC_FACTOR;
 	t3_PRETRG_DELAY_COUT_NUM = pre_trg_delay * CTC_FACTOR;
 
-	t3_ON_DUR = (p_width > 0) ? (p_width * CTC_FACTOR - 1) : 0;
-	t3_OFF_DUR = (CYCLE > p_width) ? ((CYCLE - p_width) * CTC_FACTOR - 1) : 0;
+	t3_ON_DUR = (p_width > 0) ? (p_width * CTC_FACTOR) : 0;
+	t3_OFF_DUR = (CYCLE > p_width) ? ((CYCLE - p_width) * CTC_FACTOR) : 0;
 
 	t3_PHASE_COUT_NUM = t3_ON_DUR;
 	t3_CUR_STATUS = TRG_ON;
+	t3_FLIPTIME = t3_PRETRG_DELAY_COUT_NUM + t3_ON_DUR;
+	if (t3_PRETRG_DELAY_COUT_NUM == 0) PWM_write5B(t3_REAL_PW);
 	_t3_start(PRE_SCALE_64DIV);
 }
 
-void PWM_PULSE_Class::p2_multipulses_ramp(unsigned long duration, float fq, unsigned long p_width, unsigned long pre_trg_delay, int power,int rampdown_stepnum)
+
+
+void PWM_PULSE_Class::p2_multipulses_ramp(unsigned long duration, float fq, unsigned long p_width, unsigned long pre_trg_delay, int power, int rampdown_stepnum)
 {
 	t3_RAMPSTEPNUM = rampdown_stepnum;
 	t3_POWER_RAMPSTEP = ramp_cal(power * 8, rampdown_stepnum);
@@ -461,10 +451,11 @@ void PWM_PULSE_Class::p2_cancel_ramp(int rampdown_stepnum)
 {
 	t3_PRETRG_DELAY_COUT_NUM = 0;
 	t3_RAMPSTEPNUM = rampdown_stepnum;
-	t3_POWER_RAMPSTEP = ramp_cal(t3_REAL_PW, rampdown_stepnum);
+	t3_POWER_RAMPSTEP = ramp_cal(t3_REAL_PW,rampdown_stepnum);
 	t3_RAMPDOWN_FLAG = 1;
 	t3_DUR_COUT_NUM = 0;
 }
+
 
 /***********p3***************/
 /***********p3***************/
@@ -472,7 +463,9 @@ unsigned long t4_ON_DUR;
 unsigned long t4_OFF_DUR;
 unsigned long t4_PHASE_COUT_NUM;
 unsigned long t4_DUR_COUT_NUM;
+unsigned long t4_TIMEPASSED;
 unsigned long t4_CUR_STATUS;
+unsigned long t4_FLIPTIME;
 unsigned long t4_PRETRG_DELAY_COUT_NUM;
 float t4_REAL_PW;
 float t4_POWER_RAMPSTEP;
@@ -489,7 +482,7 @@ inline static void _set_t4_isi(uint16_t isi){
 inline static void t4_init(){
 	t_TCCRnB = TCCR4B;
 	_CLEAR(t_TCCRnB, CS40); _CLEAR(t_TCCRnB, CS41); _CLEAR(t_TCCRnB, CS42); //Close clock source.
-	_SET(t_TCCRnB, WGM42); _CLEAR(t_TCCRnB, WGM43); //CTC mode, TOP: OCR1A;
+	_SET(t_TCCRnB, WGM42); _CLEAR(t_TCCRnB, WGM43); //CTC mode, TOP: OCR4A;
 	TCCR4B = t_TCCRnB;
 	TCCR4A = 0;
 	TCCR4C = 0;
@@ -502,25 +495,22 @@ inline static void t4_init(){
 
 inline static void _t4_stop(){
 	TCCR4B &= ~PRE_SCALE_MASK;
-	// OCR4AH = 0;
-	// OCR4AL = 0;
 	TCNT4H = 0; //set TCNT4 to 0
 	TCNT4L = 0; //set TCNT4 to 0
 }
 
 inline void _t4_start(byte pre_scale){
-	// t4_init();
 	TCCR4B |= pre_scale; //set prescale
 }
-
-
 void t4_init_global()
 {
 	t4_ON_DUR = 0;
 	t4_OFF_DUR = 0;
 	t4_PHASE_COUT_NUM = 0;
 	t4_DUR_COUT_NUM = 0;
+ 	t4_TIMEPASSED = 0;
 	t4_PRETRG_DELAY_COUT_NUM = 0;
+	t4_FLIPTIME = 0;
 	t4_REAL_PW = 0;
 	t4_POWER_RAMPSTEP = 0;
 	t4_RAMPDOWN_FLAG = 0;
@@ -530,60 +520,50 @@ void t4_init_global()
 
 void t4_operator()
 {
-	if (t4_PRETRG_DELAY_COUT_NUM > 0){
-		t4_PRETRG_DELAY_COUT_NUM--;
-		if (t4_PRETRG_DELAY_COUT_NUM == 0) PWM_write5A(t4_REAL_PW);
+ 	t4_TIMEPASSED++;
+	if(t4_TIMEPASSED < t4_PRETRG_DELAY_COUT_NUM) return;
+	else if (t4_TIMEPASSED == t4_PRETRG_DELAY_COUT_NUM)
+	{
+		PWM_write5A(t4_REAL_PW);
 	}
-	else{
-			if (t4_DUR_COUT_NUM > 0)
-			{
-				t4_DUR_COUT_NUM--;
-				if (t4_PHASE_COUT_NUM > 0)
-				{
-					t4_PHASE_COUT_NUM--;
-				}
-				else
-				{
-					if ((t4_CUR_STATUS == TRG_ON) && (t4_OFF_DUR > 0))
-					{
-						t4_PHASE_COUT_NUM = t4_OFF_DUR;
-						t4_CUR_STATUS = TRG_OFF;
-						//digitalWrite(t4_PIN_, t4_TRG_OFF_VAL);
-						// PWM_write5A(0);
-					}
-					else if (t4_ON_DUR > 0)
-					{
-						t4_PHASE_COUT_NUM = t4_ON_DUR;
-						t4_CUR_STATUS = TRG_ON;
-						//digitalWrite(t4_PIN_, t4_TRG_ON_VAL);
-						// PWM_write5A(t4_REAL_PW);
-					}
-				}
-				if(t4_CUR_STATUS == TRG_ON) PWM_write5A(t4_REAL_PW);
-				if(t4_CUR_STATUS == TRG_OFF) PWM_write5A(0);
-			}
-			else if (1 == t4_RAMPDOWN_FLAG)
-			{
-				if ((t4_REAL_PW > t4_POWER_RAMPSTEP)&&(t4_RAMPCOUNTER < t4_RAMPSTEPNUM))
-				{
-					t4_REAL_PW = t4_REAL_PW - t4_POWER_RAMPSTEP;
-					PWM_write5A(t4_REAL_PW);
-					t4_RAMPCOUNTER++;
-				}
-				else
-				{
-					t4_RAMPDOWN_FLAG = 0;
-					PWM_write5A(0);
-				}
-			}
-			else
-			{
-				_t4_stop();
-				PWM_write5A(0);
-				//digitalWrite(t4_PIN_, t4_TRG_OFF_VAL);
-				t4_init_global();
-			}
-        }
+
+	if (t4_TIMEPASSED < (t4_PRETRG_DELAY_COUT_NUM + t4_DUR_COUT_NUM))
+	{
+		if(t4_TIMEPASSED < t4_FLIPTIME) return;
+		else if((t4_CUR_STATUS == TRG_ON) && (t4_OFF_DUR > 0))
+		{
+			t4_CUR_STATUS = TRG_OFF;
+			t4_FLIPTIME = t4_FLIPTIME + t4_OFF_DUR;
+			PWM_write5A(0);
+		}
+		else if((t4_CUR_STATUS == TRG_OFF) && (t4_ON_DUR > 0))
+		{
+			t4_CUR_STATUS = TRG_ON;
+			t4_FLIPTIME = t4_FLIPTIME + t4_ON_DUR;
+			PWM_write5A(t4_REAL_PW);
+		}
+	}
+	else if (1 == t4_RAMPDOWN_FLAG)
+	{
+		if ((t4_REAL_PW > t4_POWER_RAMPSTEP)&&(t4_RAMPCOUNTER < t4_RAMPSTEPNUM))
+		{
+			t4_REAL_PW = t4_REAL_PW - t4_POWER_RAMPSTEP;
+			PWM_write5A(t4_REAL_PW);
+			t4_RAMPCOUNTER++;
+		}
+		else
+		{
+			_t4_stop();
+			PWM_write5A(0);
+			t4_init_global();
+		}
+	}
+	else
+	{
+		_t4_stop();
+		PWM_write5A(0);
+		t4_init_global();
+	}
 }
 
 ISR(TIMER4_COMPA_vect)
@@ -603,18 +583,22 @@ void PWM_PULSE_Class::p3_multipulses(unsigned long duration, float fq, unsigned 
 	if (duration == 0) return;
 
 	//t4_PIN_ = pin;
-	t4_DUR_COUT_NUM = duration * CTC_FACTOR - 1;
+	t4_DUR_COUT_NUM = duration * CTC_FACTOR;
 	t4_PRETRG_DELAY_COUT_NUM = pre_trg_delay * CTC_FACTOR;
 
-	t4_ON_DUR = (p_width > 0) ? (p_width * CTC_FACTOR - 1) : 0;
-	t4_OFF_DUR = (CYCLE > p_width) ? ((CYCLE - p_width) * CTC_FACTOR - 1) : 0;
+	t4_ON_DUR = (p_width > 0) ? (p_width * CTC_FACTOR) : 0;
+	t4_OFF_DUR = (CYCLE > p_width) ? ((CYCLE - p_width) * CTC_FACTOR) : 0;
 
 	t4_PHASE_COUT_NUM = t4_ON_DUR;
 	t4_CUR_STATUS = TRG_ON;
+	t4_FLIPTIME = t4_PRETRG_DELAY_COUT_NUM + t4_ON_DUR;
+	if (t4_PRETRG_DELAY_COUT_NUM == 0) PWM_write5A(t4_REAL_PW);
 	_t4_start(PRE_SCALE_64DIV);
 }
 
-void PWM_PULSE_Class::p3_multipulses_ramp(unsigned long duration, float fq, unsigned long p_width, unsigned long pre_trg_delay, int power,int rampdown_stepnum)
+
+
+void PWM_PULSE_Class::p3_multipulses_ramp(unsigned long duration, float fq, unsigned long p_width, unsigned long pre_trg_delay, int power, int rampdown_stepnum)
 {
 	t4_RAMPSTEPNUM = rampdown_stepnum;
 	t4_POWER_RAMPSTEP = ramp_cal(power * 8, rampdown_stepnum);
@@ -628,7 +612,7 @@ void PWM_PULSE_Class::p3_constant( uint32_t duration, unsigned long pre_trg_dela
 	p3_multipulses(duration, fq, duration, pre_trg_delay, power);
 }
 
-void PWM_PULSE_Class::p3_constant_ramp( uint32_t duration, unsigned long pre_trg_delay, int power,int rampdown_stepnum)
+void PWM_PULSE_Class::p3_constant_ramp( uint32_t duration, unsigned long pre_trg_delay, int power, int rampdown_stepnum)
 {
 	t4_RAMPSTEPNUM = rampdown_stepnum;
 	t4_POWER_RAMPSTEP = ramp_cal(power * 8, rampdown_stepnum);
@@ -647,10 +631,11 @@ void PWM_PULSE_Class::p3_cancel_ramp(int rampdown_stepnum)
 {
 	t4_PRETRG_DELAY_COUT_NUM = 0;
 	t4_RAMPSTEPNUM = rampdown_stepnum;
-	t4_POWER_RAMPSTEP = ramp_cal(t4_REAL_PW, rampdown_stepnum);
+	t4_POWER_RAMPSTEP = ramp_cal(t4_REAL_PW,rampdown_stepnum);
 	t4_RAMPDOWN_FLAG = 1;
 	t4_DUR_COUT_NUM = 0;
 }
+
 
 /***************init********************/
 /***************init********************/
