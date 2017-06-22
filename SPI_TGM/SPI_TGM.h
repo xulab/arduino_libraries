@@ -1,4 +1,8 @@
-// SPI_TGM.h
+/* version 10
+ * modified in 2017-06-22
+ * change:  add pre sound delay
+ */
+
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "Arduino.h"
 #else
@@ -24,7 +28,7 @@
 
 /*-----------TGM_config-------------*/
 /*-----------version-------------*/
-#define TGM_VERSION 1
+#define TGM_VERSION 10 //ver 2: add pre sound delay
 #define TGM_INFO_ADDR 0
 #define TGM_VERSION_STRING_SIZE info_string_size
 /*-----------version-------------*/
@@ -105,6 +109,8 @@ typedef struct {
 	float sweep_base;
 	uint16_t chord_num;
 	// uint16_t sweep_int_us;
+	uint32_t durationL;
+	uint32_t pre_sound_delay;
 } ton;
 
 typedef struct{
@@ -137,22 +143,24 @@ public:
 	void init(byte boardtype);
 	void write(uint32_t addr, uint16_t size, char *data);
 	void read(uint32_t addr, uint16_t size, char *data);
-	void quick_tone(uint16_t duration, uint16_t frequency);
-	void quick_tone_vol(uint16_t duration, uint16_t frequency, byte vol);
-	void quick_tone_vol_cosramp_5ms(uint16_t duration, uint16_t frequency, byte vol);
-	void quick_tone_vol_cosramp_2ms(uint16_t duration, uint16_t frequency, byte vol);
+	// void quick_tone(uint32_t duration, uint16_t frequency);
+	void quick_tone(uint32_t duration, uint16_t frequency, uint32_t pre_sound_delay = 0 );
+	void quick_tone_vol(uint32_t duration, uint16_t frequency, byte vol, uint32_t pre_sound_delay = 0);
+	// void quick_tone_vol_cosramp_5ms(uint32_t duration, uint16_t frequency, byte vol);
+	void quick_tone_vol_cosramp_5ms(uint32_t duration, uint16_t frequency, byte vol, uint32_t pre_sound_delay = 0 );
+	void quick_tone_vol_cosramp_2ms(uint32_t duration, uint16_t frequency, byte vol, uint32_t pre_sound_delay = 0);
 	void wait_command();
 	void read_tone();
 	void SPI_pin_clean();
-	void quick_sweep_linear_cosramp_5ms(uint16_t duration, uint16_t fq0, uint16_t fq1, byte vol);
-	void quick_sweep_peak_cosramp_5ms(uint16_t duration, uint16_t fq0, uint16_t fq1, uint16_t fq2, byte vol);
-	void quick_sweep_exp_cosramp_5ms(uint16_t duration, uint16_t fq0, uint16_t fq1, byte vol);
-	void quick_noise_cosramp_5ms(uint16_t duration, uint16_t fq0, uint16_t fq1, byte vol, byte mode);
-	void quick_chord_cosramp_5ms(uint16_t duration, uint16_t * fq, uint16_t fq_num, byte vol);
-	void tone_vol_rampup(uint16_t frequency, byte vol);
-	void tone_vol_rampdown(uint16_t frequency, byte vol);
-	void set_tone_fq(uint16_t frequency);
-	void set_tone_fq_vol(uint16_t frequency, byte vol);
+	void quick_sweep_linear_cosramp_5ms(uint32_t duration, uint16_t fq0, uint16_t fq1, byte vol, uint32_t pre_sound_delay = 0);
+	void quick_sweep_peak_cosramp_5ms(uint32_t duration, uint16_t fq0, uint16_t fq1, uint16_t fq2, byte vol, uint32_t pre_sound_delay = 0);
+	void quick_sweep_exp_cosramp_5ms(uint32_t duration, uint16_t fq0, uint16_t fq1, byte vol, uint32_t pre_sound_delay = 0);
+	void quick_noise_cosramp_5ms(uint32_t duration, uint16_t fq0, uint16_t fq1, byte vol, byte mode, uint32_t pre_sound_delay = 0);
+	void quick_chord_cosramp_5ms(uint32_t duration, uint16_t * fq, uint16_t fq_num, byte vol, uint32_t pre_sound_delay = 0);
+	void tone_vol_rampup(uint16_t frequency, byte vol, uint32_t pre_sound_delay = 0);
+	void tone_vol_rampdown(uint16_t frequency, byte vol, uint32_t pre_sound_delay = 0);
+	void set_tone_fq(uint16_t frequency, uint32_t pre_sound_delay = 0);
+	void set_tone_fq_vol(uint16_t frequency, byte vol, uint32_t pre_sound_delay = 0);
 };
 
 extern SPI_TGMClass SPI_TGM;

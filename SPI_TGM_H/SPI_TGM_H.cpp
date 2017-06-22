@@ -1,6 +1,6 @@
-/* version 06
- * modified in 2014-11-17
- * change: add a new function peak tone.
+﻿/* version 10
+ * modified in 20170622
+ * change: add pre_sound_delay.
  */
 #include <math.h>
 #include <SPI_TGM_H.h>
@@ -544,12 +544,12 @@ void SPI_TGMClass::step_vol_down_2ms(byte t_vol){
 	step_index = 0;
 }
 
-static void _sweep_tone_linear(uint16_t fq0, uint16_t fq1, uint16_t _time, byte vol){
+static void _sweep_tone_linear(uint16_t fq0, uint16_t fq1, uint32_t _time, byte vol){
 	uint32_t sweep_interval = _SWEEP_INTERVAL_; //us
 	_set_vol(vol);
 	_set_fq(fq0);
 	sweep_index = 0;
-	sweep_index_size = ((uint32_t)_time)*1000/sweep_interval;
+	sweep_index_size = _time*1000/sweep_interval;
 	sweep_linear_step = ((double)fq1 - (double)fq0)/((double)sweep_index_size);
 	timer1_mode = TIMER1_SWEEP_LINEAR;
 	_set_ctc_isi(sweep_interval*16);//16 cycles per us
@@ -560,12 +560,12 @@ static void _sweep_tone_linear(uint16_t fq0, uint16_t fq1, uint16_t _time, byte 
 
 
 
-static void _sweep_tone_exp(uint16_t fq0, uint16_t fq1, uint16_t _time, byte vol){
+static void _sweep_tone_exp(uint16_t fq0, uint16_t fq1, uint32_t _time, byte vol){
 	uint32_t sweep_interval = _SWEEP_INTERVAL_; //us
 	_set_vol(vol);
 	_set_fq(fq0);
 	sweep_index = 0;
-	sweep_index_size = ((uint32_t)_time)*1000/sweep_interval;
+	sweep_index_size = _time*1000/sweep_interval;
 	sweep_base =  exp(log((double)fq1/(double)fq0) / (double)sweep_index_size);
 	timer1_mode = TIMER1_SWEEP_EXP;
 	_set_ctc_isi(sweep_interval*16);//16 cycles per us
@@ -574,12 +574,12 @@ static void _sweep_tone_exp(uint16_t fq0, uint16_t fq1, uint16_t _time, byte vol
 	sweep_index = 0;
 }
 
-static void _sweep_tone_peak(uint16_t fq0, uint16_t fq1, uint16_t fq2, uint16_t _time, byte vol){
+static void _sweep_tone_peak(uint16_t fq0, uint16_t fq1, uint16_t fq2, uint32_t _time, byte vol){
 	uint32_t sweep_interval = _SWEEP_INTERVAL_; //us
 	_set_vol(vol);
 	_set_fq(fq0);
 	sweep_index = 0;
-	sweep_index_size = (((uint32_t)_time)*1000/sweep_interval)/2;//based on linear change mode
+	sweep_index_size = (_time*1000/sweep_interval)/2;//based on linear change mode
 	sweep_linear_step = ((double)fq1 - (double)fq0)/((double)sweep_index_size);
 	timer1_mode = TIMER1_SWEEP_LINEAR;
 	_set_ctc_isi(sweep_interval*16);//16 cycles per us
@@ -588,7 +588,7 @@ static void _sweep_tone_peak(uint16_t fq0, uint16_t fq1, uint16_t fq2, uint16_t 
 	sweep_index = 0;
 	_set_fq(fq1);
 	sweep_fq0 = sweep_fq1;
-	sweep_index_size = (((uint32_t)_time)*1000/sweep_interval)/2;//based on linear change mode
+	sweep_index_size = (_time*1000/sweep_interval)/2;//based on linear change mode
 	sweep_linear_step = ((double)fq2 - (double)fq1)/((double)sweep_index_size);
 	timer1_mode = TIMER1_SWEEP_LINEAR;
 	_set_ctc_isi(sweep_interval*16);//16 cycles per us
@@ -632,24 +632,24 @@ uint16_t random_noise_fq(){
 	return fq;
 }
 
-static void _noise_tone(uint16_t _time){
+static void _noise_tone(uint32_t _time){
 	uint32_t sweep_interval = _SWEEP_INTERVAL_; //us
 	timer1_mode = TIMER1_NOISE;
 	// _set_vol(vol);
 	_set_fq(random_noise_fq());
 	sweep_index = 0;
-	sweep_index_size = ((uint32_t)_time)*1000/sweep_interval;
+	sweep_index_size = _time*1000/sweep_interval;
 	_set_ctc_isi(sweep_interval*16);//16 cycles per us
 	_timer1_start(PRE_SCALE_0DIV);
 	while(TIMER1_STOP != timer1_mode);
 	sweep_index = 0;
 }
 
-static void _chord(uint16_t _time){
+static void _chord(uint32_t _time){
 	uint32_t sweep_interval = _SWEEP_INTERVAL_; //us
 	timer1_mode = TIMER1_CHORD;
 	sweep_index = 0;
-	sweep_index_size = ((uint32_t)_time)*1000/sweep_interval;
+	sweep_index_size = _time*1000/sweep_interval;
 	_set_ctc_isi(sweep_interval*16);//16 cycles per us
 	_timer1_start(PRE_SCALE_0DIV);
 	while(TIMER1_STOP != timer1_mode);
@@ -657,7 +657,7 @@ static void _chord(uint16_t _time){
 }
 
 
-void SPI_TGMClass::delay_ms(uint16_t data){
+void SPI_TGMClass::delay_ms(uint32_t data){
 	delay_time = data;
 	timer1_mode = TIMER1_DELAY_MODE;
 	_set_ctc_isi(PRE_SCALE_64DIV_MUTIPLE);
@@ -1027,15 +1027,23 @@ void SPI_TGMClass::read_tone(){
 
 
 void SPI_TGMClass::set_tone(){
+	uint32_t dur_temp = 0;
 	if (TONE_FLAG_ON == tone.tone_flag){
 		_target_vol = tone.volume;
 		sweep_mode = tone.sweep;
 		sweep_fq0 = tone.frequency0;
 		sweep_fq1 = tone.frequency1;
 		sweep_fq2 = tone.frequency2;
+		dur_temp = (tone.version < 10) ? tone.duration : tone.duration; //there is a new variable "tone.duration_2" (32bit), so you can play sound longer than 6.5s.
+
 		memcpy((void* )chord_fq_array, &(tone.frequency0), sizeof(tone.frequency0)*tone.chord_num);
 		chord_fq_num = tone.chord_num;
 		// _set_vol(0);
+		
+		if (tone.pre_sound_delay > 0)
+		{
+			delay_ms(tone.pre_sound_delay);
+		}
 
 		switch(tone.sweep){
 			case SWEEP_OFF:
@@ -1095,43 +1103,43 @@ void SPI_TGMClass::set_tone(){
 
 		switch(tone.sweep){
 			case SWEEP_OFF:
-		if(tone.duration!=0)
-			{delay_ms(tone.duration);}
+				if(dur_temp!=0)
+				{delay_ms(dur_temp);}
 			break;
 
 			case SWEEP_LINEAR:
-			_sweep_tone_linear(tone.frequency0,tone.frequency1,tone.duration,_target_vol);
+				_sweep_tone_linear(tone.frequency0,tone.frequency1,dur_temp,_target_vol);
 			break;
 
 			case SWEEP_EXP:
-			_sweep_tone_exp(tone.frequency0,tone.frequency1,tone.duration,_target_vol);
+				_sweep_tone_exp(tone.frequency0,tone.frequency1,dur_temp,_target_vol);
 			break;
 
 			case SWEEP_PEAK:
-			_sweep_tone_peak(tone.frequency0,tone.frequency1,tone.frequency2,tone.duration,_target_vol);
+				_sweep_tone_peak(tone.frequency0,tone.frequency1,tone.frequency2,dur_temp,_target_vol);
 			break;
 
 			case SWEEP_ARRAY:
 			break;
 
 			case SWEEP_NOISE_WHITE:
-			_noise_tone(tone.duration);
+				_noise_tone(dur_temp);
 			break;
 
 			case SWEEP_NOISE_GAUSS1:
-			_noise_tone(tone.duration);
+				_noise_tone(dur_temp);
 			break;
 
 			case SWEEP_NOISE_GAUSS2:
-			_noise_tone(tone.duration);
+				_noise_tone(dur_temp);
 			break;
 
 			case SWEEP_NOISE_GAUSS3:
-			_noise_tone(tone.duration);
+				_noise_tone(dur_temp);
 			break;
 
 			case SWEEP_CHORD:
-			_chord(tone.duration);
+				_chord(dur_temp);
 			break;
 		}
 
@@ -1145,7 +1153,7 @@ void SPI_TGMClass::set_tone(){
 			break;
 		}
 
-		if(tone.duration!=0)
+		if(dur_temp!=0)
 		{
 			_set_vol(0);
 			_set_fq(0);

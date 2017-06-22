@@ -1,5 +1,6 @@
 // SPI_TGM.h
 // Must using arduino compiler verson 1.5.6
+// version 2 20170622
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "Arduino.h"
 #else
@@ -23,7 +24,7 @@
 
 /*-----------TGM_config-------------*/
 /*-----------version-------------*/
-#define TGM_VERSION 1
+#define TGM_VERSION 10
 #define TGM_INFO_ADDR 0
 #define TGM_VERSION_STRING_SIZE info_string_size
 /*-----------version-------------*/
@@ -103,6 +104,8 @@ typedef struct {
 	uint16_t fq_step;
 	float sweep_base;
 	uint16_t chord_num;
+	uint32_t durationL;
+	uint32_t pre_sound_delay;
 } ton;
 
 typedef struct{
@@ -155,7 +158,7 @@ public:
 	void step_vol_down(byte t_vol);
 	void step_vol_up_2ms(byte t_vol);
 	void step_vol_down_2ms(byte t_vol);
-	void delay_ms(uint16_t data);
+	void delay_ms(uint32_t data);
 	void SPI_pin_clean();
 	void vol_chip_reset();
 	void quick_sweep_linear_cosramp_5ms(uint16_t duration, uint16_t fq0, uint16_t fq1, byte vol);
