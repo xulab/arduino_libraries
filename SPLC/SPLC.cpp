@@ -18,7 +18,7 @@ int SPLCClass::get_D_SPL(float fq, byte DB){
 	int index = (int)((fq - f0)/df);
 	float real_SPL = pgm_read_float_far(&_CALIB[index]);
 	float att = real_SPL-DB;
-	return (int)(192-(2*att));
+	return (int)(calib_vol - (2 * att));
 }
 
 void SPLCClass::init(){
