@@ -1,6 +1,6 @@
 step_interval = 0.0625; %us
 ramp_time = 2000; %us
-minimum_circle = 320;
+minimum_circle = 10; %10us
 
 
 adj_db =0:-0.5:-127;
@@ -52,5 +52,18 @@ f=finverse(y);
 hold on;
  plot([0:0.01:pi/2],cos([0:0.01:pi/2]));
  
- 
+ %%
+AdjVol_temp = 0:-1:-192;
+adj_amp =10.^(AdjVol_temp/2/20);
+rawTimeStamp = acos(adj_amp*2-1)/pi;
+% rawTimeStamp = acos(db2mag((0:-1:-192)/2)*2-1)/pi;
+rawISI = [];
+for i = 1:192
+   rawISI(i) = rawTimeStamp(i + 1) -  rawTimeStamp(i); 
+end
+figure;
+plot(rawTimeStamp,adj_amp,".");
+hold on
+x = [0:0.01:1];
+plot(x,(cos(x*pi)+1)/2);
  

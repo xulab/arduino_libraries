@@ -1,172 +1,41 @@
-/* version 10
- * modified in 2017-06-22
- * change:  add pre sound delay
+/* version 11
+ * modified in 20181129
+ * only suit for teensy 3.6
+ * change: add pre_sound_delay.
+ * change: add clicks.
+ * change: add cancel.
+ * change: add amplitude modulation.
+ * Reaction time: 700us.
  */
-#include <math.h>
+
+//#include <math.h>
 #include <SPI_TGM.h>
 #include <SPI.h>
 #include <CACHE.h>
-#ifdef watchdog
-#include <avr/wdt.h>
-// #include "CACHE.h"
 
-#endif
-
-
-/*-----------23LC1024------------*/
-/*-----------23LC1024------------*/
-#define Byte_mode B00000000
-#define Page_mode B10000000
-#define Seq_mode B01000000
-#define Reserved_mode B11000000
-
-#define read_code 0x03
-#define wr_code 0x02
-#define EDIO 0x3B //Enter Dual I/O access
-#define EQIO 0x38 //Enter Quad I/O access
-#define RSTIO 0xFF //Reset Dual and Quad I/O access
-#define RDMR 0x05 //Read Mode Register
-#define WRMR 0x01 //Write Mode Register
+#pragma pack (1) //align to 1 byte.
 
 #define Mega2560_CS 53
 #define Mega2560_SCK 52
 #define Mega2560_MO 51
 #define Mega2560_MI 50
-#define Mega2560_REQ 47 
-#define Mega2560_PER 48 
-#define Mega2560_INFO 49 
-#define Mega2560_WR 46 
+#define Mega2560_REQ 47
+#define Mega2560_PER 48
+#define Mega2560_INFO 49
+#define Mega2560_WR 46
 
-inline static void _SPI_INIT(){	
-	CACHE.INFO = 49;
-	CACHE.REQ = 47;
-	CACHE.WR = 46;
-	CACHE.PER = 48;
+#define MINITERVAL 500*0.0625 //25us
+#define RAWISISIZE 192
+uint16_t MAXCLOCKS=0xFFFF; //25us
+
+inline static void _SPI_INIT()
+{
+	CACHE.INFO = Mega2560_INFO;
+	CACHE.REQ = Mega2560_REQ;
+	CACHE.WR = Mega2560_WR;
+	CACHE.PER = Mega2560_PER;
 	CACHE.init(MEGA2560);
-	// pinMode(Mega2560_CS, OUTPUT);
-	// pinMode(Mega2560_SCK , OUTPUT);
-	// pinMode(Mega2560_MO , OUTPUT);
-	// pinMode(Mega2560_MI , INPUT);
-	// pinMode(Mega2560_REQ , OUTPUT);
-	// pinMode(Mega2560_WR , OUTPUT);
-	// pinMode(Mega2560_PER, INPUT);
-	// pinMode(Mega2560_INFO, INPUT);
-
-	// digitalWrite(Mega2560_CS, HIGH);
-	// digitalWrite(Mega2560_SCK, LOW);
-	// digitalWrite(Mega2560_MO , LOW);
-	// digitalWrite(Mega2560_REQ , LOW);
 }
-
-
-// inline static void _REQ_REQUEST(){
-// 	digitalWrite(Mega2560_WR, HIGH);
-// 	digitalWrite(Mega2560_REQ, HIGH);
-// }
-
-// inline static void _REQ_RELEASE(){
-// 	// digitalWrite(Mega2560_REQ, LOW);
-// 	CACHE.release();
-// }
-
-// // inline static uint8_t _REQ_GET_H_BUSY(){
-// // 	return digitalRead(Mega2560_PER);
-// // }
-
-// // inline static uint8_t _REQ_GET_G_BUSY(){
-// // 	return digitalRead(Mega2560_INFO);
-// // }
-
-// inline static void _GET_PERMISSION(){
-// 	// _REQ_REQUEST();
-// 	// NOP();
-// 	// NOP();
-// 	// while(LOW == _REQ_GET_H_BUSY());
-// 	CACHE.request();
-// }
-
-// inline static void _23lc1024_SPI_begin(){
-// 	_GET_PERMISSION();
-// 	//SPI.begin();
-// 	digitalWrite(Mega2560_CS, LOW);
-// }
-
-// inline static void _23lc1024_SPI_end(){
-// 	digitalWrite(Mega2560_CS, HIGH);
-// 	//SPI.end();
-// 	_REQ_RELEASE();
-// }
-
-//inline static void _23lc1024_reset(){
-//	_SPI_REQUEST();
-//	_SPI_Mask = _23lc1024_SPI_Mask;
-//	_CS = _23lc1024_CS;
-//
-//	NOP();
-//	_SPI_port |= (_MOSI|_MISO);
-//	_SPI_port &= ~_SCK;
-//	_SPI_port |= _CS;
-//	_SPI_port |= _SCK;
-//	_SPI_port &= ~_SCK;
-//	_SPI_port |= _SCK;
-//	_SPI_port &= ~_SCK;
-//	_SPI_port &= ~_CS;
-//	NOP();
-//	NOP();
-//	_SPI_port |= _CS;
-//	_SPI_port |= _SCK;
-//	_SPI_port &= ~_SCK;
-//	_SPI_port |= _SCK;
-//	_SPI_port &= ~_SCK;
-//	_SPI_port |= _SCK;
-//	_SPI_port &= ~_SCK;
-//	_SPI_port |= _SCK;
-//	_SPI_port &= ~_SCK;
-//	_SPI_port &= ~_CS;
-//
-//	_SPI_Mask = _temp_SPI_Mask;
-//	_CS = _temp_CS;
-//	_SPI_REQ_RELEASE();
-//}
-
-
-
-//inline static void _23lc1024_set(byte mode){
-//	_23lc1024_SPI_begin();
-//	_SPI_transfer(WRMR);
-//	_SPI_transfer(mode);
-//	_23lc1024_SPI_end();
-//}
-
-// inline static void _23lc1024_write(uint32_t addr, uint16_t size, char *data){
-// 	_23lc1024_SPI_begin();
-// 	SPI.transfer(wr_code);
-// 	SPI.transfer(addr>>16);
-// 	SPI.transfer(addr>>8);
-// 	SPI.transfer(addr);
-// 	for(uint16_t i = 0; i<size; i++){
-// 		SPI.transfer(data[i]);
-// 	}
-// 	_23lc1024_SPI_end();
-// }
-
-// inline static void _23lc1024_read(uint32_t addr, uint16_t size, char *data){
-// 	_23lc1024_SPI_begin();
-// 	SPI.transfer(read_code);
-// 	SPI.transfer(addr>>16);
-// 	SPI.transfer(addr>>8);
-// 	SPI.transfer(addr);
-// 	for(uint16_t i = 0; i < size; i++){
-// 		data[i] = SPI.transfer(0);
-// 	}
-// 	_23lc1024_SPI_end();
-// }
-/*-----------23LC1024-------------*/
-/*-----------23LC1024------------*/
-
-
-
-
 
 void SPI_TGMClass::init(byte boardtype)
 {
@@ -190,96 +59,95 @@ void SPI_TGMClass::init(byte boardtype)
 
 	memset(&fq_info, 0, sizeof(fq_info));
 	_SPI_INIT();
-	SPI.setDataMode(SPI_MODE0); 
-	SPI.setClockDivider(SPI_CLOCK_DIV4); //half speed, if the wire is too long may set this to SPI_CLOCK_DIV8
-	SPI.begin();
 }
 
-
-inline void SPI_TGMClass::_read_info(TGMinfo* data){
-	// _23lc1024_read(TGM_INFO_ADDR, sizeof(TGMinfo), (char*)data);
-	CACHE.q_read(TGM_INFO_ADDR, sizeof(TGMinfo), (char*)data);
+inline void SPI_TGMClass::_read_info(TGMinfo *data)
+{
+	CACHE.q_read(TGM_INFO_ADDR, sizeof(TGMinfo), (char *)data);
 }
 
-inline void SPI_TGMClass::_write_info(TGMinfo* data){
-	// _23lc1024_write(TGM_INFO_ADDR, sizeof(TGMinfo), (char*)data);
-	CACHE.q_write(TGM_INFO_ADDR, sizeof(TGMinfo), (char*)data);
+inline void SPI_TGMClass::_write_info(TGMinfo *data)
+{
+	CACHE.q_write(TGM_INFO_ADDR, sizeof(TGMinfo), (char *)data);
 }
 
-inline void SPI_TGMClass::_read_error(TMGerror* data){
-	// _23lc1024_read(ERROR_ADDR, sizeof(TMGerror), (char*)data);
-	CACHE.q_read(ERROR_ADDR, sizeof(TMGerror), (char*)data);
+inline void SPI_TGMClass::_read_error(TMGerror *data)
+{
+	CACHE.q_read(ERROR_ADDR, sizeof(TMGerror), (char *)data);
 }
 
-inline void SPI_TGMClass::_write_error(TMGerror* data){
-	// _23lc1024_write(ERROR_ADDR, sizeof(TMGerror), (char*)data);
-	CACHE.q_write(ERROR_ADDR, sizeof(TMGerror), (char*)data);
+inline void SPI_TGMClass::_write_error(TMGerror *data)
+{
+	CACHE.q_write(ERROR_ADDR, sizeof(TMGerror), (char *)data);
 }
 
-inline void SPI_TGMClass::_read_tone(ton* data){
-	// _23lc1024_read(TONE_ADDR, sizeof(ton), (char*)data);
-	CACHE.q_read(TONE_ADDR, sizeof(ton), (char*)data);
+inline void SPI_TGMClass::_read_tone(ton *data)
+{
+	CACHE.q_read(TONE_ADDR, sizeof(ton), (char *)data);
 }
 
-inline void SPI_TGMClass::_write_tone(ton * data){
-	// _23lc1024_write(TONE_ADDR, sizeof(ton), (char*)data);
-	CACHE.q_write(TONE_ADDR, sizeof(ton), (char*)data);
+inline void SPI_TGMClass::_write_tone(ton *data)
+{
+	CACHE.q_write(TONE_ADDR, sizeof(ton), (char *)data);
 }
 
-inline void SPI_TGMClass::_erase_tone(){
-	// _23lc1024_write(TONE_ADDR, sizeof(ton), (char*)&_EMPTY_TONE);
-	CACHE.q_write(TONE_ADDR, sizeof(ton), (char*)&_EMPTY_TONE);
+inline void SPI_TGMClass::_erase_tone()
+{
+	CACHE.q_write(TONE_ADDR, sizeof(ton), (char *)&_EMPTY_TONE);
 }
 
-inline void SPI_TGMClass::_set_empty_tone(ton* data){
+inline void SPI_TGMClass::_set_empty_tone(ton *data)
+{
 	memmove(data, &_EMPTY_TONE, sizeof(ton));
 }
 
-
-void SPI_TGMClass::write(uint32_t addr, uint16_t size, char *data){
-	// _23lc1024_write(addr, size, data);
+void SPI_TGMClass::write(uint32_t addr, uint16_t size, char *data)
+{
 	CACHE.q_write(addr, size, data);
 }
 
-
-
-void SPI_TGMClass::read(uint32_t addr, uint16_t size, char *data){
-	// _23lc1024_read(addr, size, data);
+void SPI_TGMClass::read(uint32_t addr, uint16_t size, char *data)
+{
 	CACHE.read(addr, size, data);
 }
 
-
-void SPI_TGMClass::quick_tone(uint32_t duration, uint16_t frequency, uint32_t pre_sound_delay = 0 ){
+void SPI_TGMClass::quick_tone(uint32_t duration, uint32_t frequency, uint32_t pre_sound_delay = 0)
+{
 	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
 	_QUICK_TONE.version = TGM_VERSION;
 	_QUICK_TONE.duration = duration;
 	_QUICK_TONE.durationL = duration;
 	_QUICK_TONE.pre_sound_delay = pre_sound_delay;
 	_QUICK_TONE.frequency0 = frequency;
+	_QUICK_TONE.frequencyL0 = frequency;
 	_write_tone(&_QUICK_TONE);
 	_set_empty_tone(&_QUICK_TONE);
 }
 
-void SPI_TGMClass::quick_tone_vol(uint32_t duration, uint16_t frequency, byte vol, uint32_t pre_sound_delay = 0 ){
+void SPI_TGMClass::quick_tone_vol(uint32_t duration, uint32_t frequency, byte vol, uint32_t pre_sound_delay = 0)
+{
 	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
 	_QUICK_TONE.version = TGM_VERSION;
 	_QUICK_TONE.duration = duration;
 	_QUICK_TONE.durationL = duration;
 	_QUICK_TONE.pre_sound_delay = pre_sound_delay;
 	_QUICK_TONE.frequency0 = frequency;
+	_QUICK_TONE.frequencyL0 = frequency;
 	_QUICK_TONE.volume_mode = VOLUME_ON;
 	_QUICK_TONE.volume = vol;
 	_write_tone(&_QUICK_TONE);
 	_set_empty_tone(&_QUICK_TONE);
 }
 
-void SPI_TGMClass::quick_tone_vol_cosramp_5ms(uint32_t duration, uint16_t frequency, byte vol, uint32_t pre_sound_delay = 0 ){
+void SPI_TGMClass::quick_tone_vol_cosramp_5ms(uint32_t duration, uint32_t frequency, byte vol, uint32_t pre_sound_delay = 0)
+{
 	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
 	_QUICK_TONE.version = TGM_VERSION;
 	_QUICK_TONE.duration = duration;
 	_QUICK_TONE.durationL = duration;
 	_QUICK_TONE.pre_sound_delay = pre_sound_delay;
 	_QUICK_TONE.frequency0 = frequency;
+	_QUICK_TONE.frequencyL0 = frequency;
 	_QUICK_TONE.volume_mode = VOLUME_ON;
 	_QUICK_TONE.volume = vol;
 	_QUICK_TONE.step_up_flag = STEP_FLAG_COS_5MS;
@@ -288,13 +156,15 @@ void SPI_TGMClass::quick_tone_vol_cosramp_5ms(uint32_t duration, uint16_t freque
 	_set_empty_tone(&_QUICK_TONE);
 }
 
-void SPI_TGMClass::quick_tone_vol_cosramp_2ms(uint32_t duration, uint16_t frequency, byte vol, uint32_t pre_sound_delay = 0){
+void SPI_TGMClass::quick_tone_vol_cosramp_2ms(uint32_t duration, uint32_t frequency, byte vol, uint32_t pre_sound_delay = 0)
+{
 	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
 	_QUICK_TONE.version = TGM_VERSION;
 	_QUICK_TONE.duration = duration;
 	_QUICK_TONE.durationL = duration;
 	_QUICK_TONE.pre_sound_delay = pre_sound_delay;
 	_QUICK_TONE.frequency0 = frequency;
+	_QUICK_TONE.frequencyL0 = frequency;
 	_QUICK_TONE.volume_mode = VOLUME_ON;
 	_QUICK_TONE.volume = vol;
 	_QUICK_TONE.step_up_flag = STEP_FLAG_COS_2MS;
@@ -303,14 +173,68 @@ void SPI_TGMClass::quick_tone_vol_cosramp_2ms(uint32_t duration, uint16_t freque
 	_set_empty_tone(&_QUICK_TONE);
 }
 
+void SPI_TGMClass::quick_tone_clicks(uint32_t duration, uint32_t carrierFq, uint32_t clicksDur, uint32_t clicksPeriod, byte vol, uint32_t pre_sound_delay = 0)
+{
+	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
+	_QUICK_TONE.version = TGM_VERSION;
+	_QUICK_TONE.duration = duration;
+	_QUICK_TONE.durationL = duration;
+	_QUICK_TONE.pre_sound_delay = pre_sound_delay;
+	_QUICK_TONE.frequency0 = carrierFq;
+	_QUICK_TONE.frequencyL0 = carrierFq;
+	// _QUICK_TONE.volume_mode = VOLUME_ON;
+	_QUICK_TONE.volume = vol;
+	_QUICK_TONE.sweep = SWEEP_CLICKS;
+	_QUICK_TONE.clicks_dur = clicksDur;
+	_QUICK_TONE.clicks_period = clicksPeriod;
+	_write_tone(&_QUICK_TONE);
+	_set_empty_tone(&_QUICK_TONE);
+}
 
-void SPI_TGMClass::tone_vol_rampup(uint16_t frequency, byte vol, uint32_t pre_sound_delay = 0){
+void SPI_TGMClass::quick_tone_clicks_cosramp_2ms(uint32_t duration, uint32_t carrierFq, uint32_t clicksDur, uint32_t clicksPeriod, byte vol, uint32_t pre_sound_delay = 0)
+{
+	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
+	_QUICK_TONE.version = TGM_VERSION;
+	_QUICK_TONE.duration = duration;
+	_QUICK_TONE.durationL = duration;
+	_QUICK_TONE.pre_sound_delay = pre_sound_delay;
+	_QUICK_TONE.frequency0 = carrierFq;
+	_QUICK_TONE.frequencyL0 = carrierFq;
+	//_QUICK_TONE.volume_mode = VOLUME_ON;
+	_QUICK_TONE.volume = vol;
+	_QUICK_TONE.sweep = SWEEP_CLICKS_RAMP_2MS;
+	_QUICK_TONE.clicks_dur = clicksDur;
+	_QUICK_TONE.clicks_period = clicksPeriod;
+	_write_tone(&_QUICK_TONE);
+	_set_empty_tone(&_QUICK_TONE);
+}
+
+void SPI_TGMClass::quick_tone_AM(uint32_t duration, uint32_t carrierFq, uint32_t AMFq, byte vol, uint32_t pre_sound_delay = 0)
+{
+	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
+	_QUICK_TONE.version = TGM_VERSION;
+	_QUICK_TONE.duration = duration;
+	_QUICK_TONE.durationL = duration;
+	_QUICK_TONE.pre_sound_delay = pre_sound_delay;
+	_QUICK_TONE.frequency0 = carrierFq;
+	_QUICK_TONE.frequencyL0 = carrierFq;
+	_QUICK_TONE.AMFrequncy = AMFq;
+	//_QUICK_TONE.volume_mode = VOLUME_ON;
+	_QUICK_TONE.volume = vol;
+	_QUICK_TONE.sweep = SWEEP_AM;
+	_write_tone(&_QUICK_TONE);
+	_set_empty_tone(&_QUICK_TONE);
+}
+
+void SPI_TGMClass::tone_vol_rampup(uint32_t frequency, byte vol, uint32_t pre_sound_delay = 0)
+{
 	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
 	_QUICK_TONE.version = TGM_VERSION;
 	_QUICK_TONE.duration = 0;
 	_QUICK_TONE.durationL = 0;
 	_QUICK_TONE.pre_sound_delay = pre_sound_delay;
 	_QUICK_TONE.frequency0 = frequency;
+	_QUICK_TONE.frequencyL0 = frequency;
 	_QUICK_TONE.volume_mode = VOLUME_ON;
 	_QUICK_TONE.volume = vol;
 	_QUICK_TONE.step_up_flag = STEP_FLAG_COS_5MS;
@@ -318,13 +242,15 @@ void SPI_TGMClass::tone_vol_rampup(uint16_t frequency, byte vol, uint32_t pre_so
 	_set_empty_tone(&_QUICK_TONE);
 }
 
-void SPI_TGMClass::tone_vol_rampdown(uint16_t frequency, byte vol, uint32_t pre_sound_delay = 0){
+void SPI_TGMClass::tone_vol_rampdown(uint32_t frequency, byte vol, uint32_t pre_sound_delay = 0)
+{
 	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
 	_QUICK_TONE.version = TGM_VERSION;
 	_QUICK_TONE.duration = 0;
 	_QUICK_TONE.durationL = 0;
 	_QUICK_TONE.pre_sound_delay = pre_sound_delay;
 	_QUICK_TONE.frequency0 = frequency;
+	_QUICK_TONE.frequencyL0 = frequency;
 	_QUICK_TONE.volume_mode = VOLUME_ON;
 	_QUICK_TONE.volume = vol;
 	_QUICK_TONE.step_down_flag = STEP_FLAG_COS_5MS;
@@ -332,40 +258,80 @@ void SPI_TGMClass::tone_vol_rampdown(uint16_t frequency, byte vol, uint32_t pre_
 	_set_empty_tone(&_QUICK_TONE);
 }
 
-
-void SPI_TGMClass::set_tone_fq(uint16_t frequency, uint32_t pre_sound_delay = 0){
+void SPI_TGMClass::set_tone_fq(uint32_t frequency, uint32_t pre_sound_delay = 0)
+{
 	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
 	_QUICK_TONE.version = TGM_VERSION;
 	_QUICK_TONE.duration = 0;
 	_QUICK_TONE.durationL = 0;
 	_QUICK_TONE.pre_sound_delay = pre_sound_delay;
 	_QUICK_TONE.frequency0 = frequency;
+	_QUICK_TONE.frequencyL0 = frequency;
 	_QUICK_TONE.volume_mode = VOLUME_OFF;
 	_write_tone(&_QUICK_TONE);
 	_set_empty_tone(&_QUICK_TONE);
 }
 
-void SPI_TGMClass::set_tone_fq_vol(uint16_t frequency, byte vol, uint32_t pre_sound_delay = 0){
+void SPI_TGMClass::tone_cancel()
+{
+	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
+	_QUICK_TONE.version = TGM_VERSION;
+	_QUICK_TONE.duration = 0;
+	_QUICK_TONE.durationL = 0;
+	_QUICK_TONE.volume_mode = VOLUME_ON;
+	_QUICK_TONE.volume = 0;
+	_write_tone(&_QUICK_TONE);
+	_set_empty_tone(&_QUICK_TONE);
+}
+
+void SPI_TGMClass::tone_cancel_cosramp_5ms()
+{
+	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
+	_QUICK_TONE.version = TGM_VERSION;
+	_QUICK_TONE.duration = 0;
+	_QUICK_TONE.durationL = 0;
+	_QUICK_TONE.step_down_flag = STEP_FLAG_CANCEL_COS_5MS;
+	_write_tone(&_QUICK_TONE);
+	_set_empty_tone(&_QUICK_TONE);
+}
+
+void SPI_TGMClass::tone_cancel_cosramp_2ms()
+{
+	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
+	_QUICK_TONE.version = TGM_VERSION;
+	_QUICK_TONE.duration = 0;
+	_QUICK_TONE.durationL = 0;
+	_QUICK_TONE.step_down_flag = STEP_FLAG_CANCEL_COS_2MS;
+	_write_tone(&_QUICK_TONE);
+	_set_empty_tone(&_QUICK_TONE);
+}
+
+void SPI_TGMClass::set_tone_fq_vol(uint32_t frequency, byte vol, uint32_t pre_sound_delay = 0)
+{
 	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
 	_QUICK_TONE.version = TGM_VERSION;
 	_QUICK_TONE.duration = 0;
 	_QUICK_TONE.durationL = 0;
 	_QUICK_TONE.pre_sound_delay = pre_sound_delay;
 	_QUICK_TONE.frequency0 = frequency;
+	_QUICK_TONE.frequencyL0 = frequency;
 	_QUICK_TONE.volume_mode = VOLUME_ON;
 	_QUICK_TONE.volume = vol;
 	_write_tone(&_QUICK_TONE);
 	_set_empty_tone(&_QUICK_TONE);
 }
 
-void SPI_TGMClass::quick_sweep_linear_cosramp_5ms(uint32_t duration, uint16_t fq0, uint16_t fq1, byte vol, uint32_t pre_sound_delay = 0){
+void SPI_TGMClass::quick_sweep_linear_cosramp_5ms(uint32_t duration, uint32_t fq0, uint32_t fq1, byte vol, uint32_t pre_sound_delay = 0)
+{
 	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
 	_QUICK_TONE.version = TGM_VERSION;
 	_QUICK_TONE.duration = duration;
 	_QUICK_TONE.durationL = duration;
 	_QUICK_TONE.pre_sound_delay = pre_sound_delay;
 	_QUICK_TONE.frequency0 = fq0;
+	_QUICK_TONE.frequencyL0 = fq0;
 	_QUICK_TONE.frequency1 = fq1;
+	_QUICK_TONE.frequencyL1 = fq1;
 	_QUICK_TONE.volume_mode = VOLUME_ON;
 	_QUICK_TONE.volume = vol;
 	_QUICK_TONE.step_up_flag = STEP_FLAG_COS_5MS;
@@ -375,15 +341,17 @@ void SPI_TGMClass::quick_sweep_linear_cosramp_5ms(uint32_t duration, uint16_t fq
 	_set_empty_tone(&_QUICK_TONE);
 }
 
-
-void SPI_TGMClass::quick_sweep_exp_cosramp_5ms(uint32_t duration, uint16_t fq0, uint16_t fq1, byte vol, uint32_t pre_sound_delay = 0){
+void SPI_TGMClass::quick_sweep_exp_cosramp_5ms(uint32_t duration, uint32_t fq0, uint32_t fq1, byte vol, uint32_t pre_sound_delay = 0)
+{
 	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
 	_QUICK_TONE.version = TGM_VERSION;
 	_QUICK_TONE.duration = duration;
 	_QUICK_TONE.durationL = duration;
 	_QUICK_TONE.pre_sound_delay = pre_sound_delay;
 	_QUICK_TONE.frequency0 = fq0;
+	_QUICK_TONE.frequencyL0 = fq0;
 	_QUICK_TONE.frequency1 = fq1;
+	_QUICK_TONE.frequencyL1 = fq1;
 	// _QUICK_TONE.sweep_base = base;
 	_QUICK_TONE.volume_mode = VOLUME_ON;
 	_QUICK_TONE.volume = vol;
@@ -394,16 +362,19 @@ void SPI_TGMClass::quick_sweep_exp_cosramp_5ms(uint32_t duration, uint16_t fq0, 
 	_set_empty_tone(&_QUICK_TONE);
 }
 
-
-void SPI_TGMClass::quick_sweep_peak_cosramp_5ms(uint32_t duration, uint16_t fq0, uint16_t fq1, uint16_t fq2, byte vol, uint32_t pre_sound_delay = 0){
+void SPI_TGMClass::quick_sweep_peak_cosramp_5ms(uint32_t duration, uint32_t fq0, uint32_t fq1, uint32_t fq2, byte vol, uint32_t pre_sound_delay = 0)
+{
 	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
 	_QUICK_TONE.version = TGM_VERSION;
 	_QUICK_TONE.duration = duration;
 	_QUICK_TONE.durationL = duration;
 	_QUICK_TONE.pre_sound_delay = pre_sound_delay;
 	_QUICK_TONE.frequency0 = fq0;
+	_QUICK_TONE.frequencyL0 = fq0;
 	_QUICK_TONE.frequency1 = fq1;
+	_QUICK_TONE.frequencyL1 = fq1;
 	_QUICK_TONE.frequency2 = fq2;
+	_QUICK_TONE.frequencyL2 = fq2;
 	// _QUICK_TONE.sweep_base = base;
 	_QUICK_TONE.volume_mode = VOLUME_ON;
 	_QUICK_TONE.volume = vol;
@@ -414,15 +385,17 @@ void SPI_TGMClass::quick_sweep_peak_cosramp_5ms(uint32_t duration, uint16_t fq0,
 	_set_empty_tone(&_QUICK_TONE);
 }
 
-
-void SPI_TGMClass::quick_noise_cosramp_5ms(uint32_t duration, uint16_t fq0, uint16_t fq1, byte vol, byte mode, uint32_t pre_sound_delay = 0){
+void SPI_TGMClass::quick_noise_cosramp_5ms(uint32_t duration, uint32_t fq0, uint32_t fq1, byte vol, byte mode, uint32_t pre_sound_delay = 0)
+{
 	_QUICK_TONE.tone_flag = TONE_FLAG_ON;
 	_QUICK_TONE.version = TGM_VERSION;
 	_QUICK_TONE.duration = duration;
 	_QUICK_TONE.durationL = duration;
 	_QUICK_TONE.pre_sound_delay = pre_sound_delay;
 	_QUICK_TONE.frequency0 = fq0;
+	_QUICK_TONE.frequencyL0 = fq0;
 	_QUICK_TONE.frequency1 = fq1;
+	_QUICK_TONE.frequencyL1 = fq1;
 	_QUICK_TONE.volume_mode = VOLUME_ON;
 	_QUICK_TONE.volume = vol;
 	_QUICK_TONE.step_up_flag = STEP_FLAG_COS_5MS;
@@ -432,46 +405,67 @@ void SPI_TGMClass::quick_noise_cosramp_5ms(uint32_t duration, uint16_t fq0, uint
 	_set_empty_tone(&_QUICK_TONE);
 }
 
-void SPI_TGMClass::quick_chord_cosramp_5ms(uint32_t duration, uint16_t * fq, uint16_t fq_num, byte vol, uint32_t pre_sound_delay = 0){
-	int i=0;
-	if(i<fq_num){
+void SPI_TGMClass::quick_chord_cosramp_5ms(uint32_t duration, uint32_t *fq, uint16_t fq_num, byte vol, uint32_t pre_sound_delay = 0)
+{
+	int i = 0;
+	if (i < fq_num)
+	{
 		_QUICK_TONE.frequency0 = fq[i];
+		_QUICK_TONE.frequencyL0 = fq[i];
 		i++;
 	}
-	if(i<fq_num){
+	if (i < fq_num)
+	{
 		_QUICK_TONE.frequency1 = fq[i];
+		_QUICK_TONE.frequencyL1 = fq[i];
 		i++;
 	}
-	if(i<fq_num){
+	if (i < fq_num)
+	{
 		_QUICK_TONE.frequency2 = fq[i];
+		_QUICK_TONE.frequencyL2 = fq[i];
 		i++;
 	}
-	if(i<fq_num){
+	if (i < fq_num)
+	{
 		_QUICK_TONE.frequency3 = fq[i];
+		_QUICK_TONE.frequencyL3 = fq[i];
 		i++;
 	}
-	if(i<fq_num){
+	if (i < fq_num)
+	{
 		_QUICK_TONE.frequency4 = fq[i];
+		_QUICK_TONE.frequencyL4 = fq[i];
 		i++;
 	}
-	if(i<fq_num){
+	if (i < fq_num)
+	{
 		_QUICK_TONE.frequency5 = fq[i];
+		_QUICK_TONE.frequencyL5 = fq[i];
 		i++;
 	}
-	if(i<fq_num){
+	if (i < fq_num)
+	{
 		_QUICK_TONE.frequency6 = fq[i];
+		_QUICK_TONE.frequencyL6 = fq[i];
 		i++;
 	}
-	if(i<fq_num){
+	if (i < fq_num)
+	{
 		_QUICK_TONE.frequency7 = fq[i];
+		_QUICK_TONE.frequencyL7 = fq[i];
 		i++;
 	}
-	if(i<fq_num){
+	if (i < fq_num)
+	{
 		_QUICK_TONE.frequency8 = fq[i];
+		_QUICK_TONE.frequencyL8 = fq[i];
 		i++;
 	}
-	if(i<fq_num){
+	if (i < fq_num)
+	{
 		_QUICK_TONE.frequency9 = fq[i];
+		_QUICK_TONE.frequencyL9 = fq[i];
 		i++;
 	}
 	_QUICK_TONE.chord_num = fq_num;
@@ -490,13 +484,9 @@ void SPI_TGMClass::quick_chord_cosramp_5ms(uint32_t duration, uint16_t * fq, uin
 	_set_empty_tone(&_QUICK_TONE);
 }
 
-
-void SPI_TGMClass::read_tone(){
-	read(TONE_ADDR, sizeof(ton), (char*)&tone);
+void SPI_TGMClass::read_tone()
+{
+	read(TONE_ADDR, sizeof(ton), (char *)&tone);
 }
 
-
-
-
 SPI_TGMClass SPI_TGM;
-

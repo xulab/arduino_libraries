@@ -1,34 +1,28 @@
-/* version 10
- * modified in 2017-06-22
- * change:  add pre sound delay
+/* version 11
+ * modified in 20181129
+ * only suit for teensy 3.6
+ * change: add pre_sound_delay.
+ * change: add clicks.
+ * change: add cancel.
+ * change: add amplitude modulation.
+ * Reaction time: 700us.
  */
 
-#if defined(ARDUINO) && ARDUINO >= 100
-	#include "Arduino.h"
-#else
-	#include "WProgram.h"
-#endif
 
 #ifndef _SPI_TGM_h
 #define _SPI_TGM_h
 #include "Arduino.h"
-#ifndef NOP()
-#define NOP() __asm__ __volatile__ ("nop")
-#endif
-
-
 
 #define TGM 255
 #define UNO TGM
 #define MEGA2560 1
-
 
 #define info_string_size 50
 
 
 /*-----------TGM_config-------------*/
 /*-----------version-------------*/
-#define TGM_VERSION 10 //ver 2: add pre sound delay
+#define TGM_VERSION 11 
 #define TGM_INFO_ADDR 0
 #define TGM_VERSION_STRING_SIZE info_string_size
 /*-----------version-------------*/
@@ -55,6 +49,9 @@
 #define SWEEP_NOISE_GAUSS3 8
 #define SWEEP_CHORD 9
 #define SWEEP_PEAK 10
+#define SWEEP_CLICKS 11
+#define SWEEP_CLICKS_RAMP_2MS 12
+#define SWEEP_AM 13
 #define SWEEP_ARRAY_ADDR 300
 #define PREP_OFF 0
 #define PREP_ON 1
@@ -66,6 +63,8 @@
 #define STEP_FLAG_OFF 0
 #define STEP_FLAG_COS_5MS 1
 #define STEP_FLAG_COS_2MS 2
+#define STEP_FLAG_CANCEL_COS_5MS 3
+#define STEP_FLAG_CANCEL_COS_2MS 4
 #define MAX_CHORD_NUM 10
 /*-----------tone-------------*/
 /*-----------TGM_config-------------*/
@@ -111,6 +110,19 @@ typedef struct {
 	// uint16_t sweep_int_us;
 	uint32_t durationL;
 	uint32_t pre_sound_delay;
+	uint32_t frequencyL0;
+	uint32_t frequencyL1;
+	uint32_t frequencyL2;
+	uint32_t frequencyL3;
+	uint32_t frequencyL4;
+	uint32_t frequencyL5;
+	uint32_t frequencyL6;
+	uint32_t frequencyL7;
+	uint32_t frequencyL8;
+	uint32_t frequencyL9;	
+	uint32_t clicks_dur;
+	uint32_t clicks_period;
+	uint32_t AMFrequncy;
 } ton;
 
 typedef struct{
@@ -143,24 +155,28 @@ public:
 	void init(byte boardtype);
 	void write(uint32_t addr, uint16_t size, char *data);
 	void read(uint32_t addr, uint16_t size, char *data);
-	// void quick_tone(uint32_t duration, uint16_t frequency);
-	void quick_tone(uint32_t duration, uint16_t frequency, uint32_t pre_sound_delay = 0 );
-	void quick_tone_vol(uint32_t duration, uint16_t frequency, byte vol, uint32_t pre_sound_delay = 0);
-	// void quick_tone_vol_cosramp_5ms(uint32_t duration, uint16_t frequency, byte vol);
-	void quick_tone_vol_cosramp_5ms(uint32_t duration, uint16_t frequency, byte vol, uint32_t pre_sound_delay = 0 );
-	void quick_tone_vol_cosramp_2ms(uint32_t duration, uint16_t frequency, byte vol, uint32_t pre_sound_delay = 0);
+	void quick_tone(uint32_t duration, uint32_t frequency, uint32_t pre_sound_delay = 0 );
+	void quick_tone_vol(uint32_t duration, uint32_t frequency, byte vol, uint32_t pre_sound_delay = 0);
+	void quick_tone_vol_cosramp_5ms(uint32_t duration, uint32_t frequency, byte vol, uint32_t pre_sound_delay = 0 );
+	void quick_tone_vol_cosramp_2ms(uint32_t duration, uint32_t frequency, byte vol, uint32_t pre_sound_delay = 0);
+	void quick_tone_clicks(uint32_t duration, uint32_t carrierFq, uint32_t clicksDur, uint32_t clicksPeriod, byte vol, uint32_t pre_sound_delay = 0);
+	void quick_tone_clicks_cosramp_2ms(uint32_t duration, uint32_t carrierFq, uint32_t clicksDur, uint32_t clicksPeriod, byte vol, uint32_t pre_sound_delay = 0);
+	void quick_tone_AM(uint32_t duration, uint32_t carrierFq, uint32_t AMFq, byte vol, uint32_t pre_sound_delay = 0);
 	void wait_command();
 	void read_tone();
 	void SPI_pin_clean();
-	void quick_sweep_linear_cosramp_5ms(uint32_t duration, uint16_t fq0, uint16_t fq1, byte vol, uint32_t pre_sound_delay = 0);
-	void quick_sweep_peak_cosramp_5ms(uint32_t duration, uint16_t fq0, uint16_t fq1, uint16_t fq2, byte vol, uint32_t pre_sound_delay = 0);
-	void quick_sweep_exp_cosramp_5ms(uint32_t duration, uint16_t fq0, uint16_t fq1, byte vol, uint32_t pre_sound_delay = 0);
-	void quick_noise_cosramp_5ms(uint32_t duration, uint16_t fq0, uint16_t fq1, byte vol, byte mode, uint32_t pre_sound_delay = 0);
-	void quick_chord_cosramp_5ms(uint32_t duration, uint16_t * fq, uint16_t fq_num, byte vol, uint32_t pre_sound_delay = 0);
-	void tone_vol_rampup(uint16_t frequency, byte vol, uint32_t pre_sound_delay = 0);
-	void tone_vol_rampdown(uint16_t frequency, byte vol, uint32_t pre_sound_delay = 0);
-	void set_tone_fq(uint16_t frequency, uint32_t pre_sound_delay = 0);
-	void set_tone_fq_vol(uint16_t frequency, byte vol, uint32_t pre_sound_delay = 0);
+	void quick_sweep_linear_cosramp_5ms(uint32_t duration, uint32_t fq0, uint32_t fq1, byte vol, uint32_t pre_sound_delay = 0);
+	void quick_sweep_peak_cosramp_5ms(uint32_t duration, uint32_t fq0, uint32_t fq1, uint32_t fq2, byte vol, uint32_t pre_sound_delay = 0);
+	void quick_sweep_exp_cosramp_5ms(uint32_t duration, uint32_t fq0, uint32_t fq1, byte vol, uint32_t pre_sound_delay = 0);
+	void quick_noise_cosramp_5ms(uint32_t duration, uint32_t fq0, uint32_t fq1, byte vol, byte mode, uint32_t pre_sound_delay = 0);
+	void quick_chord_cosramp_5ms(uint32_t duration, uint32_t * fq, uint16_t fq_num, byte vol, uint32_t pre_sound_delay = 0);
+	void tone_vol_rampup(uint32_t frequency, byte vol, uint32_t pre_sound_delay = 0);
+	void tone_vol_rampdown(uint32_t frequency, byte vol, uint32_t pre_sound_delay = 0);
+	void set_tone_fq(uint32_t frequency, uint32_t pre_sound_delay = 0);
+	void set_tone_fq_vol(uint32_t frequency, byte vol, uint32_t pre_sound_delay = 0);
+	void tone_cancel();
+	void tone_cancel_cosramp_5ms();
+	void tone_cancel_cosramp_2ms();
 };
 
 extern SPI_TGMClass SPI_TGM;

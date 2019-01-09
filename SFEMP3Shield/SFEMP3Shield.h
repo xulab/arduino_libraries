@@ -526,7 +526,7 @@ extern SdFat sd;
  * para_playSpeed is a Read/Write Extra Parameter in X memory, accessed indirectly
  * with the SCI_WRAMADDR and SCI_WRAM.
  *
- * config1 controls MIDI Reverb and AAC’s SBR and PS settings.
+ * config1 controls MIDI Reverb and AACæŠ¯ SBR and PS settings.
  */
 #define para_playSpeed      0x1E04
 

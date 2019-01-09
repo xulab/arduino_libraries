@@ -13,12 +13,30 @@ char str[str_len];
 void setup()
 {
 // Add your initialization code here
-	Serial.begin(9600);
-	CACHE.INFO = 49;
-	CACHE.REQ = 47;
-	CACHE.WR = 46;
-	CACHE.PER = 48;
-	CACHE.init(MEGA2560);
+	Serial.begin(115200);
+	/**teensy**/
+	CACHE.INFO = 2;
+	CACHE.REQ = 6;
+	CACHE.WR = 7;
+	CACHE.PER = 22;
+	CACHE.CS = 23;
+	CACHE.SCK = 13;
+	CACHE.MO = 11;
+	CACHE.MI = 12;
+	CACHE.SPISPEED = 4000000;
+	CACHE.init();
+
+	/**nano**/
+	// CACHE.INFO = A3;
+	// CACHE.PER = 8;
+	// CACHE.REQ = A4;
+	// CACHE.WR = A5;
+	// CACHE.CS = 10;
+	// CACHE.SCK = 13;
+	// CACHE.MO = 11;
+	// CACHE.MI = 12;
+	// CACHE.init(MEGA328);
+
 	empty_str; 
 }
 

@@ -9,6 +9,12 @@
 #define Mega2560_MO 51
 #define Mega2560_MI 50
 
+#define Mega328_CS 10 
+#define Mega328_SCK 13 
+#define Mega328_MO 11 
+#define Mega328_MI 12 
+
+
 #define read_code 0x03
 #define wr_code 0x02
 #define EDIO 0x3B //Enter Dual I/O access
@@ -26,8 +32,14 @@ void CACHE_Class::init(int board_type){
 		MO=Mega2560_MO;
 		MI=Mega2560_MI;
 		break;
+	case MEGA328:
+		CS=Mega328_CS;
+		SCK=Mega328_SCK;
+		MO=Mega328_MO;
+		MI=Mega328_MI;
+		break;
+	default:break;
 	}
-
 	pinMode(REQ, INPUT);digitalWrite(REQ, LOW);
 	pinMode(WR, INPUT);digitalWrite(WR, LOW);
 	pinMode(PER, INPUT);digitalWrite(PER, LOW);
@@ -43,8 +55,10 @@ void CACHE_Class::init(int board_type){
 	pinMode(SCK, OUTPUT);digitalWrite(SCK, LOW);
 	pinMode(MO, OUTPUT);digitalWrite(MO, LOW);
 
-	SPI.setDataMode(SPI_MODE0);
-	SPI.setClockDivider(SPI_CLOCK_DIV4); //half speed, if the wire is too long may set this to SPI_CLOCK_DIV8
+	// SPI.setDataMode(SPI_MODE0);
+	// SPI.setBitOrder(MSBFIRST);
+	// SPI.setClockDivider(SPI_CLOCK_DIV128); //half speed, if the wire is too long may set this to SPI_CLOCK_DIV8
+	// SPI.setClockDivider(SPI_CLOCK_DIV4); //half speed, if the wire is too long may set this to SPI_CLOCK_DIV8
 	SPI.begin();
 }
 
@@ -65,9 +79,10 @@ void CACHE_Class::release(){
 
 
 void CACHE_Class::write(uint32_t addr, uint16_t size, char *data){
-	digitalWrite(WR, HIGH);
 	digitalWrite(CS, LOW);
+	digitalWrite(WR, HIGH);
 
+	SPI.beginTransaction(SPISettings(SPISPEED, MSBFIRST, SPI_MODE0));
 	SPI.transfer(wr_code);
 	SPI.transfer(addr>>16);
 	SPI.transfer(addr>>8);
@@ -76,13 +91,14 @@ void CACHE_Class::write(uint32_t addr, uint16_t size, char *data){
 		SPI.transfer(data[i]);
 	}
 
+	SPI.endTransaction();
 	digitalWrite(CS, HIGH);
 	digitalWrite(WR, LOW);
 }
 
 void CACHE_Class::read(uint32_t addr, uint16_t size, char *data){
 	digitalWrite(CS, LOW);
-
+	SPI.beginTransaction(SPISettings(SPISPEED, MSBFIRST, SPI_MODE0));
 	SPI.transfer(read_code);
 	SPI.transfer(addr>>16);
 	SPI.transfer(addr>>8);
@@ -92,6 +108,7 @@ void CACHE_Class::read(uint32_t addr, uint16_t size, char *data){
 		data[i] = SPI.transfer(0);
 	}
 
+	SPI.endTransaction();
 	digitalWrite(CS, HIGH);
 }
 

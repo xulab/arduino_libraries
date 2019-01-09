@@ -1,0 +1,41 @@
+C:\Users\pan\AppData\Local\Temp\VMBuilds\TEST_PCINT1\teensy36\Debug\VM_DBG\VM_DBG.cpp.o: \
+ C:\Program\ Files\ (x86)\Microsoft\ Visual\ Studio\2017\Community\Common7\IDE\Extensions\rklz3tds.z1r\Micro\ Platforms\default\debuggers\VM_DBG\VM_DBG.cpp \
+ C:\Program\ Files\ (x86)\Microsoft\ Visual\ Studio\2017\Community\Common7\IDE\Extensions\rklz3tds.z1r\Micro\ Platforms\default\debuggers\VM_DBG\VM_DBG.h \
+ C:\Users\pan\AppData\Local\Temp\VMBuilds\TEST_PCINT1\teensy36\Debug/pch/Arduino.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/WProgram.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/avr/pgmspace.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/avr/interrupt.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/avr_functions.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/wiring.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/binary.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/core_id.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/core_pins.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/kinetis.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/pins_arduino.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/HardwareSerial.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/Stream.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/Print.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/WString.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/avr/pgmspace.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/Printable.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/new.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/avr_emulation.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/usb_serial.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/usb_desc.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/usb_seremu.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/usb_keyboard.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/keylayouts.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/usb_mouse.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/usb_joystick.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/usb_midi.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/usb_rawhid.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/usb_flightsim.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/usb_mtp.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/usb_audio.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/usb_touch.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/usb_undef.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/WCharacter.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/elapsedMillis.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/Arduino.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/IntervalTimer.h \
+ D:\_pan_files\_my_nut\software\arduino-1.8.8\hardware\teensy\avr\cores\teensy3/pins_arduino.h
