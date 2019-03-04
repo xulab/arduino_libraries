@@ -43,10 +43,14 @@ inline void _SPI_INIT() {
 #define AD9850_clock (float)125000000 //125MHz
 const float x = (float)4294967295 / AD9850_clock;
 #define fq_convert(f) (uint32_t)((float)f*x)
-#define AD9850_w_clk 4 // PC0,ArPort01
-#define AD9850_fq_up 5 //PC1,ArPort02
-#define AD9850_rest 24 //PC2,ArPort03
-int AD9850_DATA[8] = { 39, 38, 14, 16, 10, 9, 19, 20 };
+//#define AD9850_w_clk 4 //Suit for teensy3.6Adptor4TGM3.2Ver2
+#define AD9850_w_clk 34 //Suit for teensy3.6Adptor4TGM3.2Ver3
+//#define AD9850_fq_up 5 //Suit for teensy3.6Adptor4TGM3.2Ver2
+#define AD9850_fq_up 35 //Suit for teensy3.6Adptor4TGM3.2Ver3
+//#define AD9850_rest 24 //Suit for teensy3.6Adptor4TGM3.2Ver2
+#define AD9850_rest 33 //Suit for teensy3.6Adptor4TGM3.2Ver3
+//int AD9850_DATA[8] = { 39, 38, 14, 16, 10, 9, 19, 20 }; //Suit for teensy3.6Adptor4TGM3.2Ver2
+int AD9850_DATA[8] = {24, 25, 26, 27, 28, 29, 30, 31}; //Suit for teensy3.6Adptor4TGM3.2Ver3
 volatile uint32_t curFq = 0;
 
 void _ad9850_data_wr(byte data) {
@@ -65,14 +69,21 @@ inline void _ad9850_init_port() {
 }
 
 inline void _ad9850_reset() {
+	digitalWrite(AD9850_rest, LOW);
+	digitalWrite(AD9850_rest, HIGH);
+	delay(100);
+	digitalWrite(AD9850_rest, LOW);
+	digitalWrite(AD9850_w_clk, LOW);
+	digitalWrite(AD9850_w_clk, HIGH);
 	digitalWrite(AD9850_w_clk, LOW);
 	digitalWrite(AD9850_fq_up, LOW);
-	digitalWrite(AD9850_rest, HIGH);
-	digitalWrite(AD9850_rest, LOW);
+	digitalWrite(AD9850_fq_up, HIGH);
+	digitalWrite(AD9850_fq_up, LOW);
 	_ad9850_data_wr(0);
 }
 
 inline void _ad9850_init() {
+	delay(100);
 	_ad9850_init_port();
 	_ad9850_reset();
 }

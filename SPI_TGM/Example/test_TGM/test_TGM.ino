@@ -43,17 +43,17 @@ void loop()
 	SPI_TGM.quick_tone_AM(duration, carrierFq, AMFq, vol);
 	delay(duration + isi);
 
-	// digitalWrite(pin, HIGH);
-	// delayMicroseconds(1);
-	// digitalWrite(pin, LOW);
-	// SPI_TGM.quick_tone_clicks_cosramp_2ms(duration, carrierFq, clicksDur, clicksPeriod, vol);
-	// delay(duration + isi);
+	digitalWrite(pin, HIGH);
+	delayMicroseconds(1);
+	digitalWrite(pin, LOW);
+	SPI_TGM.quick_tone_clicks_cosramp_2ms(duration, carrierFq, clicksDur, clicksPeriod, vol);
+	delay(duration + isi);
 
 	// digitalWrite(pin, HIGH);
 	// delayMicroseconds(1);
 	// digitalWrite(pin, LOW);
 	// SPI_TGM.quick_tone_clicks_cosramp_2ms(duration, carrierFq, clicksDur, clicksPeriod1, vol);
-	// delay(duration / 2);
+	// delay(duration + isi);
 
 	// SPI_TGM.tone_cancel_cosramp_2ms();
 	// delay(duration + isi);
@@ -139,8 +139,8 @@ void loop()
 	// SPI_TGM.quick_tone_vol_cosramp_5ms(duration, fq1, 120);
 	// delay(duration + isi);
 
-	// SPI_TGM.quick_tone_vol(duration, fq1, vol);
-	// delay(duration + isi);
+	SPI_TGM.quick_tone_vol(duration, fq1, vol); 
+	delay(duration + isi);
 
 	// SPI_TGM.tone_vol_rampup(fq0, vol);
 	// for(int i; i<1000; i++)
