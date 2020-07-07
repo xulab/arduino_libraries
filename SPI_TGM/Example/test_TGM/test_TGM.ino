@@ -1,7 +1,6 @@
 #include <math.h>
 #include <SPI.h>
 #include <SPI_TGM.h>
-#include <CACHE.h>
 
 uint32_t fq0 = 10000;
 uint32_t fq1 = 3000;
@@ -22,7 +21,10 @@ uint32_t clicksPeriod = 30;
 uint32_t clicksPeriod1 = 5;
 
 uint32_t chord[] = {2000, 3000, 4000};
+int SPI_TGM_REQ = 44;
+int SPI_TGM_PER = 45;
 
+SPI_TGMClass SPI_TGM2;
 void setup()
 {
 	pinMode(pin, OUTPUT);
@@ -30,6 +32,7 @@ void setup()
 	digitalWrite(pin, LOW);
 	delay(50);
 	SPI_TGM.init(MEGA2560);
+	SPI_TGM2.init(MEGA2560, SPI_TGM_REQ, SPI_TGM_PER);
 	Serial.begin(115200);
 	Serial.print("random= ");
 	random(10);
@@ -40,14 +43,14 @@ void setup()
 void loop()
 {
 
-	SPI_TGM.quick_tone_AM(duration, carrierFq, AMFq, vol);
-	delay(duration + isi);
+	// SPI_TGM.quick_tone_AM(duration, carrierFq, AMFq, vol);
+	// delay(duration + isi);
 
-	digitalWrite(pin, HIGH);
-	delayMicroseconds(1);
-	digitalWrite(pin, LOW);
-	SPI_TGM.quick_tone_clicks_cosramp_2ms(duration, carrierFq, clicksDur, clicksPeriod, vol);
-	delay(duration + isi);
+	// digitalWrite(pin, HIGH);
+	// delayMicroseconds(1);
+	// digitalWrite(pin, LOW);
+	// SPI_TGM.quick_tone_clicks_cosramp_2ms(duration, carrierFq, clicksDur, clicksPeriod, vol);
+	// delay(duration + isi);
 
 	// digitalWrite(pin, HIGH);
 	// delayMicroseconds(1);
@@ -65,9 +68,10 @@ void loop()
 	//   Serial.println("exp down");
 	//	 delay(duration + isi);
 	//
-	// SPI_TGM.quick_sweep_linear_cosramp_5ms(duration, fq0, fq1, vol);
-	// Serial.println("linear");
-	// delay(duration + isi);
+	SPI_TGM.quick_sweep_linear_cosramp_5ms(duration, fq0, fq1, vol);
+	SPI_TGM2.quick_sweep_linear_cosramp_5ms(duration, fq0, fq1, vol);
+	Serial.println("linear");
+	delay(duration + isi);
 	//  SPI_TGM.quick_sweep_peak_cosramp_5ms(duration * 2 , fq0, fq1, fq2, vol);
 	//  Serial.println("peak");
 	// delay(duration + isi);
@@ -140,6 +144,7 @@ void loop()
 	// delay(duration + isi);
 
 	SPI_TGM.quick_tone_vol(duration, fq1, vol); 
+	SPI_TGM2.quick_tone_vol(duration, fq1, vol); 
 	delay(duration + isi);
 
 	// SPI_TGM.tone_vol_rampup(fq0, vol);

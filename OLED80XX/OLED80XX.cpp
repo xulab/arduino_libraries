@@ -1,4 +1,6 @@
 #include "OLED80XX.h"
+#include <string>
+
 const unsigned char F6x8[][6] =
 	{
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // sp
@@ -576,6 +578,15 @@ void OLED80XX_Class::SmallString(unsigned char x, unsigned char y, char *chr, ch
 	}
 }
 
+void OLED80XX_Class::SmallString(unsigned char x, unsigned char y, String chr, char mode)
+{
+	for (int i = 0; (i < chr.length()) && (x < 127); i++)
+	{
+		SmallChar(x, y, chr[i], mode);
+		x += 6;
+	}
+}
+
 void OLED80XX_Class::SmallString_len(unsigned char x, unsigned char y, char *chr, char mode, unsigned char len)
 {
 	unsigned char j = 0;
@@ -585,6 +596,16 @@ void OLED80XX_Class::SmallString_len(unsigned char x, unsigned char y, char *chr
 		SmallChar(x, y, chr[j], mode);
 		x += 6;
 		j++;
+	}
+}
+
+void OLED80XX_Class::SmallString_len(unsigned char x, unsigned char y, String chr, char mode, unsigned char len)
+{
+	if (len > chr.length()) len = chr.length();
+	for (int i = 0; (i < len) && (x < 127); i++)
+	{
+		SmallChar(x, y, chr[i], mode);
+		x += 6;
 	}
 }
 

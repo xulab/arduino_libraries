@@ -17,7 +17,9 @@ class OLED80XX_Class
 	void BigChar(unsigned char x, unsigned char y, unsigned char chr, char mode);
 	void SmallChar(unsigned char x, unsigned char y, unsigned char chr, char mode);
 	void SmallString(unsigned char x, unsigned char y, char *chr, char mode);
+	void SmallString(unsigned char x, unsigned char y, String chr, char mode);
 	void SmallString_len(unsigned char x, unsigned char y, char *chr, char mode, unsigned char len);
+	void SmallString_len(unsigned char x, unsigned char y, String chr, char mode, unsigned char len);
 	void BigString(unsigned char x, unsigned char y, char *chr, char mode);
 	void BigString_len(unsigned char x, unsigned char y, char *chr, char mode, unsigned char len);
 	void SmallInt(unsigned char x, unsigned char y, long data, byte length, char mode);

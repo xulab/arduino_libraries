@@ -1,10 +1,7 @@
-/* version 11
- * modified in 20181129
+/* version 12
+ * modified in 20200707
  * only suit for teensy 3.6
- * change: add pre_sound_delay.
- * change: add clicks.
- * change: add cancel.
- * change: add amplitude modulation.
+ * change: Can control multiple TGM.
  * Reaction time: 700us.
  */
 
@@ -12,6 +9,8 @@
 #ifndef _SPI_TGM_h
 #define _SPI_TGM_h
 #include "Arduino.h"
+#include <SPI.h>
+#include <CACHE.h>
 
 #define TGM 255
 #define UNO TGM
@@ -19,6 +18,14 @@
 
 #define info_string_size 50
 
+#define Mega2560_CS 53
+#define Mega2560_SCK 52
+#define Mega2560_MO 51
+#define Mega2560_MI 50
+#define Mega2560_REQ 47
+#define Mega2560_PER 48
+#define Mega2560_INFO 49
+#define Mega2560_WR 46
 
 /*-----------TGM_config-------------*/
 /*-----------version-------------*/
@@ -130,7 +137,7 @@ typedef struct{
 	byte volume;
 }fqinfo;
 
-class SPI_TGMClass
+class SPI_TGMClass : public CACHE_Class
 {
 private:
 	byte _board;
@@ -145,6 +152,7 @@ private:
 	inline void _set_empty_tone(ton* data);
 	inline void _erase_tone();
 	inline void _SPI_pin_clear();
+  inline void SPI_TGMClass::_SPI_INIT();
 
 public:
 
@@ -152,9 +160,10 @@ public:
 	TMGerror error;
 	ton tone;
 	fqinfo fq_info;
-	void init(byte boardtype);
+	// void init(byte boardtype);
+  void init(byte boardtype, int req_pin = Mega2560_REQ, int per_pin = Mega2560_PER, int info_pin = Mega2560_INFO, int wr_pin = Mega2560_WR);
 	void write(uint32_t addr, uint16_t size, char *data);
-	void read(uint32_t addr, uint16_t size, char *data);
+	// void read(uint32_t addr, uint16_t size, char *data);
 	void quick_tone(uint32_t duration, uint32_t frequency, uint32_t pre_sound_delay = 0 );
 	void quick_tone_vol(uint32_t duration, uint32_t frequency, byte vol, uint32_t pre_sound_delay = 0);
 	void quick_tone_vol_cosramp_5ms(uint32_t duration, uint32_t frequency, byte vol, uint32_t pre_sound_delay = 0 );

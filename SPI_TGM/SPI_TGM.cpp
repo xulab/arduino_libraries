@@ -1,28 +1,14 @@
-/* version 11
- * modified in 20181129
+/* version 12
+ * modified in 20200707
  * only suit for teensy 3.6
- * change: add pre_sound_delay.
- * change: add clicks.
- * change: add cancel.
- * change: add amplitude modulation.
+ * change: Can control multiple TGM.
  * Reaction time: 700us.
  */
 
-//#include <math.h>
 #include <SPI_TGM.h>
-#include <SPI.h>
-#include <CACHE.h>
 
 #pragma pack (1) //align to 1 byte.
 
-#define Mega2560_CS 53
-#define Mega2560_SCK 52
-#define Mega2560_MO 51
-#define Mega2560_MI 50
-#define Mega2560_REQ 47
-#define Mega2560_PER 48
-#define Mega2560_INFO 49
-#define Mega2560_WR 46
 
 #define MINITERVAL 500*0.0625 //25us
 #define RAWISISIZE 192
@@ -37,7 +23,7 @@ inline static void _SPI_INIT()
 	CACHE.init(MEGA2560);
 }
 
-void SPI_TGMClass::init(byte boardtype)
+void SPI_TGMClass::init(byte boardtype, int req_pin, int per_pin, int info_pin, int wr_pin)
 {
 	memset(&info, 0, sizeof(TGMinfo));
 	info.nSize = sizeof(TGMinfo);
@@ -58,42 +44,51 @@ void SPI_TGMClass::init(byte boardtype)
 	_QUICK_TONE.version = TGM_VERSION;
 
 	memset(&fq_info, 0, sizeof(fq_info));
-	_SPI_INIT();
+	// _SPI_INIT();
+	// INFO = Mega2560_INFO;
+	// REQ = Mega2560_REQ;
+	// WR = Mega2560_WR;
+	// PER = Mega2560_PER;
+	INFO = info_pin;
+	REQ = req_pin;
+	WR = wr_pin;
+	PER = per_pin;
+	CACHE_Class::init(MEGA2560);
 }
 
 inline void SPI_TGMClass::_read_info(TGMinfo *data)
 {
-	CACHE.q_read(TGM_INFO_ADDR, sizeof(TGMinfo), (char *)data);
+	q_read(TGM_INFO_ADDR, sizeof(TGMinfo), (char *)data);
 }
 
 inline void SPI_TGMClass::_write_info(TGMinfo *data)
 {
-	CACHE.q_write(TGM_INFO_ADDR, sizeof(TGMinfo), (char *)data);
+	q_write(TGM_INFO_ADDR, sizeof(TGMinfo), (char *)data);
 }
 
 inline void SPI_TGMClass::_read_error(TMGerror *data)
 {
-	CACHE.q_read(ERROR_ADDR, sizeof(TMGerror), (char *)data);
+	q_read(ERROR_ADDR, sizeof(TMGerror), (char *)data);
 }
 
 inline void SPI_TGMClass::_write_error(TMGerror *data)
 {
-	CACHE.q_write(ERROR_ADDR, sizeof(TMGerror), (char *)data);
+	q_write(ERROR_ADDR, sizeof(TMGerror), (char *)data);
 }
 
 inline void SPI_TGMClass::_read_tone(ton *data)
 {
-	CACHE.q_read(TONE_ADDR, sizeof(ton), (char *)data);
+	q_read(TONE_ADDR, sizeof(ton), (char *)data);
 }
 
 inline void SPI_TGMClass::_write_tone(ton *data)
 {
-	CACHE.q_write(TONE_ADDR, sizeof(ton), (char *)data);
+	q_write(TONE_ADDR, sizeof(ton), (char *)data);
 }
 
 inline void SPI_TGMClass::_erase_tone()
 {
-	CACHE.q_write(TONE_ADDR, sizeof(ton), (char *)&_EMPTY_TONE);
+	q_write(TONE_ADDR, sizeof(ton), (char *)&_EMPTY_TONE);
 }
 
 inline void SPI_TGMClass::_set_empty_tone(ton *data)
@@ -103,13 +98,13 @@ inline void SPI_TGMClass::_set_empty_tone(ton *data)
 
 void SPI_TGMClass::write(uint32_t addr, uint16_t size, char *data)
 {
-	CACHE.q_write(addr, size, data);
+	q_write(addr, size, data);
 }
 
-void SPI_TGMClass::read(uint32_t addr, uint16_t size, char *data)
-{
-	CACHE.read(addr, size, data);
-}
+// void SPI_TGMClass::read(uint32_t addr, uint16_t size, char *data)
+// {
+// 	read(addr, size, data);
+// }
 
 void SPI_TGMClass::quick_tone(uint32_t duration, uint32_t frequency, uint32_t pre_sound_delay = 0)
 {
