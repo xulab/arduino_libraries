@@ -68,8 +68,8 @@ void loop()
 	//   Serial.println("exp down");
 	//	 delay(duration + isi);
 	//
-	SPI_TGM.quick_sweep_linear_cosramp_5ms(duration, fq0, fq1, vol);
-	SPI_TGM2.quick_sweep_linear_cosramp_5ms(duration, fq0, fq1, vol);
+	// SPI_TGM.quick_sweep_linear_cosramp_5ms(duration, fq0, fq1, vol);
+	// SPI_TGM2.quick_sweep_linear_cosramp_5ms(duration, fq0, fq1, vol);
 	Serial.println("linear");
 	delay(duration + isi);
 	//  SPI_TGM.quick_sweep_peak_cosramp_5ms(duration * 2 , fq0, fq1, fq2, vol);
@@ -144,7 +144,7 @@ void loop()
 	// delay(duration + isi);
 
 	SPI_TGM.quick_tone_vol(duration, fq1, vol); 
-	SPI_TGM2.quick_tone_vol(duration, fq1, vol); 
+	// SPI_TGM2.quick_tone_vol(duration, fq1, vol); 
 	delay(duration + isi);
 
 	// SPI_TGM.tone_vol_rampup(fq0, vol);
