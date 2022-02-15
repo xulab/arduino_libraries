@@ -113,7 +113,7 @@ typedef struct {
 	uint16_t frequency9;
 	uint16_t fq_step;
 	float sweep_base;
-	uint16_t chord_num;
+	uint16_t chord_num; //This should less than 10.
 	// uint16_t sweep_int_us;
 	uint32_t durationL;
 	uint32_t pre_sound_delay;
@@ -130,6 +130,16 @@ typedef struct {
 	uint32_t clicks_dur;
 	uint32_t clicks_period;
 	uint32_t AMFrequncy;
+	uint32_t toneLoopMode; //0: no loop or TGM decide; 1: use the parameter toneLoopTime. 
+	uint32_t toneLoopTime; // ms. every tone loop time.
+  uint32_t reserve1;
+  uint32_t reserve2;
+  uint32_t reserve3;
+  uint32_t reserve4;
+  uint32_t reserve5;
+  uint32_t reserve6;
+  uint32_t reserve7;
+  uint32_t reserve8;
 } ton;
 
 typedef struct{
