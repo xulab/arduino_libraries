@@ -32,6 +32,12 @@ enum DPADEnum {
 // To enable serial debugging see "settings.h"
 //#define PRINTREPORT // Uncomment to print the report send by the PS4 Controller
 
+int8_t PS4Parser::getButtonIndexPS4(ButtonEnum b) {
+    const int8_t index = ButtonIndex(b);
+    if ((uint8_t) index >= (sizeof(PS4_BUTTONS) / sizeof(PS4_BUTTONS[0]))) return -1;
+    return index;
+}
+
 bool PS4Parser::checkDpad(ButtonEnum b) {
         switch (b) {
                 case UP:
@@ -48,23 +54,26 @@ bool PS4Parser::checkDpad(ButtonEnum b) {
 }
 
 bool PS4Parser::getButtonPress(ButtonEnum b) {
-        if (b <= LEFT) // Dpad
+        const int8_t index = getButtonIndexPS4(b); if (index < 0) return 0;
+        if (index <= LEFT) // Dpad
                 return checkDpad(b);
         else
-                return ps4Data.btn.val & (1UL << pgm_read_byte(&PS4_BUTTONS[(uint8_t)b]));
+                return ps4Data.btn.val & (1UL << pgm_read_byte(&PS4_BUTTONS[index]));
 }
 
 bool PS4Parser::getButtonClick(ButtonEnum b) {
-        uint32_t mask = 1UL << pgm_read_byte(&PS4_BUTTONS[(uint8_t)b]);
+        const int8_t index = getButtonIndexPS4(b); if (index < 0) return 0;
+        uint32_t mask = 1UL << pgm_read_byte(&PS4_BUTTONS[index]);
         bool click = buttonClickState.val & mask;
         buttonClickState.val &= ~mask; // Clear "click" event
         return click;
 }
 
 uint8_t PS4Parser::getAnalogButton(ButtonEnum b) {
-        if (b == L2) // These are the only analog buttons on the controller
+        const int8_t index = getButtonIndexPS4(b); if (index < 0) return 0;
+        if (index == ButtonIndex(L2)) // These are the only analog buttons on the controller
                 return ps4Data.trigger[0];
-        else if (b == R2)
+        else if (index == ButtonIndex(R2))
                 return ps4Data.trigger[1];
         return 0;
 }
@@ -84,7 +93,7 @@ void PS4Parser::Parse(uint8_t len, uint8_t *buf) {
 #endif
 
                 if (buf[0] == 0x01) // Check report ID
-                        memcpy(&ps4Data, buf + 1, min((uint8_t)(len - 1), sizeof(ps4Data)));
+                        memcpy(&ps4Data, buf + 1, min((uint8_t)(len - 1), MFK_CASTUINT8T sizeof(ps4Data)));
                 else if (buf[0] == 0x11) { // This report is send via Bluetooth, it has an offset of 2 compared to the USB data
                         if (len < 4) {
 #ifdef DEBUG_USB_HOST
@@ -93,7 +102,7 @@ void PS4Parser::Parse(uint8_t len, uint8_t *buf) {
 #endif
                                 return;
                         }
-                        memcpy(&ps4Data, buf + 3, min((uint8_t)(len - 3), sizeof(ps4Data)));
+                        memcpy(&ps4Data, buf + 3, min((uint8_t)(len - 3), MFK_CASTUINT8T sizeof(ps4Data)));
                 } else {
 #ifdef DEBUG_USB_HOST
                         Notify(PSTR("\r\nUnknown report id: "), 0x80);

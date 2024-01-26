@@ -1,7 +1,7 @@
 /*
  *******************************************************************************
  * USB-MIDI class driver for USB Host Shield 2.0 Library
- * Copyright (c) 2012-2016 Yuuichi Akagawa
+ * Copyright (c) 2012-2022 Yuuichi Akagawa
  *
  * Idea from LPK25 USB-MIDI to Serial MIDI converter
  *   by Collin Cunningham - makezine.com, narbotic.com
@@ -25,6 +25,9 @@
  */
 
 #include "usbh_midi.h"
+// To enable serial debugging see "settings.h"
+//#define EXTRADEBUG // Uncomment to get even more debugging data
+
 //////////////////////////
 // MIDI MESAGES
 // midi.org/techspecs/
@@ -79,26 +82,16 @@
 //| 0xF |     1     |Single Byte
 //+-----+-----------+-------------------------------------------------------------------
 
-const uint8_t USBH_MIDI::epDataInIndex  = 1;
-const uint8_t USBH_MIDI::epDataOutIndex = 2;
-const uint8_t USBH_MIDI::epDataInIndexVSP  = 3;
-const uint8_t USBH_MIDI::epDataOutIndexVSP = 4;
-
 USBH_MIDI::USBH_MIDI(USB *p) :
 pUsb(p),
 bAddress(0),
-bNumEP(1),
 bPollEnable(false),
-isMidiFound(false),
 readPtr(0) {
         // initialize endpoint data structures
         for(uint8_t i=0; i<MIDI_MAX_ENDPOINTS; i++) {
-                epInfo[i].epAddr        = 0;
+                epInfo[i].epAddr      = 0;
                 epInfo[i].maxPktSize  = (i) ? 0 : 8;
-                epInfo[i].epAttribs     = 0;
-//    epInfo[i].bmNakPower  = (i) ? USB_NAK_NOWAIT : USB_NAK_MAX_POWER;
-                epInfo[i].bmNakPower  = (i) ? USB_NAK_NOWAIT : 4;
-
+                epInfo[i].bmNakPower  = (i) ? USB_NAK_NOWAIT : USB_NAK_MAX_POWER;
         }
         // register in USB subsystem
         if (pUsb) {
@@ -109,14 +102,28 @@ readPtr(0) {
 /* Connection initialization of an MIDI Device */
 uint8_t USBH_MIDI::Init(uint8_t parent, uint8_t port, bool lowspeed)
 {
-        uint8_t    buf[DESC_BUFF_SIZE];
+        uint8_t    buf[sizeof (USB_DEVICE_DESCRIPTOR)];
         USB_DEVICE_DESCRIPTOR * udd = reinterpret_cast<USB_DEVICE_DESCRIPTOR*>(buf);
         uint8_t    rcode;
         UsbDevice  *p = NULL;
         EpInfo     *oldep_ptr = NULL;
         uint8_t    num_of_conf;  // number of configurations
+        uint8_t  bConfNum = 0;    // configuration number
+        uint8_t  bNumEP = 1;      // total number of EP in the configuration
 
         USBTRACE("\rMIDI Init\r\n");
+#ifdef DEBUG_USB_HOST
+        Notify(PSTR("USBH_MIDI version "), 0x80), D_PrintHex((uint8_t) (USBH_MIDI_VERSION / 10000), 0x80), D_PrintHex((uint8_t) (USBH_MIDI_VERSION / 100 % 100), 0x80), D_PrintHex((uint8_t) (USBH_MIDI_VERSION % 100), 0x80), Notify(PSTR("\r\n"), 0x80);
+#endif
+
+        //for reconnect
+        for(uint8_t i=epDataInIndex; i<=epDataOutIndex; i++) {
+                epInfo[i].bmSndToggle = 0;
+                epInfo[i].bmRcvToggle = 0;
+                // If you want to retry if you get a NAK response when sending, enable the following:
+                // epInfo[i].bmNakPower  = (i==epDataOutIndex) ? 10 : USB_NAK_NOWAIT;
+        }
+
         // get memory address of USB device address pool
         AddressPool &addrPool = pUsb->GetAddressPool();
 
@@ -140,10 +147,10 @@ uint8_t USBH_MIDI::Init(uint8_t parent, uint8_t port, bool lowspeed)
         p->epinfo = epInfo;
         p->lowspeed = lowspeed;
 
-        // Get device descriptor
-        rcode = pUsb->getDevDescr( 0, 0, sizeof(USB_DEVICE_DESCRIPTOR), (uint8_t*)buf );
-        vid = udd->idVendor;
-        pid = udd->idProduct;
+        // First Device Descriptor Request (Initially first 8 bytes)
+        // https://techcommunity.microsoft.com/t5/microsoft-usb-blog/how-does-usb-stack-enumerate-a-device/ba-p/270685#_First_Device_Descriptor
+        rcode = pUsb->getDevDescr( 0, 0, 8, (uint8_t*)buf );
+
         // Restore p->epinfo
         p->epinfo = oldep_ptr;
 
@@ -179,6 +186,13 @@ uint8_t USBH_MIDI::Init(uint8_t parent, uint8_t port, bool lowspeed)
         }
         p->lowspeed = lowspeed;
 
+        // Second Device Descriptor Request (Full)
+        rcode = pUsb->getDevDescr( bAddress, 0, sizeof(USB_DEVICE_DESCRIPTOR), (uint8_t*)buf );
+        if( rcode ){
+                goto FailGetDevDescr;
+        }
+        vid = udd->idVendor;
+        pid = udd->idProduct;
         num_of_conf = udd->bNumConfigurations;
 
         // Assign epInfo to epinfo pointer
@@ -192,39 +206,63 @@ uint8_t USBH_MIDI::Init(uint8_t parent, uint8_t port, bool lowspeed)
         USBTRACE(" PID:"), D_PrintHex(pid, 0x80);
         USBTRACE2(" #Conf:", num_of_conf);
 
-        for (uint8_t i=0; i<num_of_conf; i++) {
-                parseConfigDescr(bAddress, i);
-                if (bNumEP > 1)
+        //Setup for well known vendor/device specific configuration
+        bTransferTypeMask = bmUSB_TRANSFER_TYPE;
+        setupDeviceSpecific();
+        
+        // STEP1: Check if attached device is a MIDI device and fill endpoint data structure
+        USBTRACE("\r\nSTEP1: MIDI Start\r\n");
+        for(uint8_t i = 0; i < num_of_conf; i++) {
+                MidiDescParser midiDescParser(this, true);  // Check for MIDI device
+                rcode = pUsb->getConfDescr(bAddress, 0, i, &midiDescParser);
+                if(rcode) // Check error code
+                        goto FailGetConfDescr;
+                bNumEP += midiDescParser.getNumEPs();
+                if(bNumEP > 1) {// All endpoints extracted
+                        bConfNum = midiDescParser.getConfValue();
                         break;
-        } // for
+                }
+        }
+        USBTRACE2("STEP1: MIDI,NumEP:", bNumEP);
+        //Found the MIDI device?
+        if( bNumEP == 1 ){  //Device not found.
+                USBTRACE("MIDI not found.\r\nSTEP2: Attempts vendor specific bulk device\r\n");
+                // STEP2: Check if attached device is a MIDI device and fill endpoint data structure
+                for(uint8_t i = 0; i < num_of_conf; i++) {
+                        MidiDescParser midiDescParser(this, false); // Allow all devices, vendor specific class with Bulk transfer
+                        rcode = pUsb->getConfDescr(bAddress, 0, i, &midiDescParser);
+                        if(rcode) // Check error code
+                                goto FailGetConfDescr;
+                        bNumEP += midiDescParser.getNumEPs();
+                        if(bNumEP > 1) {// All endpoints extracted
+                                bConfNum = midiDescParser.getConfValue();
+                                break;
+                        }
+                }
+                USBTRACE2("\r\nSTEP2: Vendor,NumEP:", bNumEP);
+        }
 
-        USBTRACE2("\r\nNumEP:", bNumEP);
-
-        if( bNumEP < 3 ){  //Device not found.
+        if( bNumEP < 2 ){  //Device not found.
                 rcode = 0xff;
                 goto FailGetConfDescr;
         }
 
-        if( !isMidiFound ){ //MIDI Device not found. Try last Bulk transfer device
-                USBTRACE("MIDI not found. Attempts bulk device\r\n");
-                epInfo[epDataInIndex].epAddr      = epInfo[epDataInIndexVSP].epAddr;
-                epInfo[epDataInIndex].maxPktSize  = epInfo[epDataInIndexVSP].maxPktSize;
-                epInfo[epDataOutIndex].epAddr     = epInfo[epDataOutIndexVSP].epAddr;
-                epInfo[epDataOutIndex].maxPktSize = epInfo[epDataOutIndexVSP].maxPktSize;
-        }
-
         // Assign epInfo to epinfo pointer
-        rcode = pUsb->setEpInfoEntry(bAddress, bNumEP, epInfo);
+        rcode = pUsb->setEpInfoEntry(bAddress, 3, epInfo);
         USBTRACE2("Conf:", bConfNum);
         USBTRACE2("EPin :", (uint8_t)(epInfo[epDataInIndex].epAddr + 0x80));
         USBTRACE2("EPout:", epInfo[epDataOutIndex].epAddr);
 
         // Set Configuration Value
         rcode = pUsb->setConf(bAddress, 0, bConfNum);
-        if (rcode) {
+        if (rcode)
                 goto FailSetConfDescr;
-        }
+
         bPollEnable = true;
+
+        if(pFuncOnInit)
+                pFuncOnInit(); // Call the user function
+
         USBTRACE("Init done.\r\n");
         return 0;
 FailGetDevDescr:
@@ -235,95 +273,41 @@ FailSetConfDescr:
         return rcode;
 }
 
-/* get and parse config descriptor */
-void USBH_MIDI::parseConfigDescr( uint8_t addr, uint8_t conf )
-{
-        uint8_t buf[ DESC_BUFF_SIZE ];
-        uint8_t* buf_ptr = buf;
-        uint8_t rcode;
-        uint8_t descr_length;
-        uint8_t descr_type;
-        unsigned int total_length;
-        USB_ENDPOINT_DESCRIPTOR *epDesc;
-        boolean isMidi = false;
-
-        // get configuration descriptor (get descriptor size only)
-        rcode = pUsb->getConfDescr( addr, 0, 4, conf, buf );
-        if( rcode ){
-                return;
-        }
-        total_length = buf[2] | ((int)buf[3] << 8);
-        if( total_length > DESC_BUFF_SIZE ) {    //check if total length is larger than buffer
-                total_length = DESC_BUFF_SIZE;
-        }
-
-        // get configuration descriptor (all)
-        rcode = pUsb->getConfDescr( addr, 0, total_length, conf, buf ); //get the whole descriptor
-        if( rcode ){
-                return;
-        }
-
-        //parsing descriptors
-        while( buf_ptr < buf + total_length ) {
-                descr_length = *( buf_ptr );
-                descr_type   = *( buf_ptr + 1 );
-                switch( descr_type ) {
-                  case USB_DESCRIPTOR_CONFIGURATION :
-                        bConfNum = buf_ptr[5];
-                        break;
-                  case  USB_DESCRIPTOR_INTERFACE :
-                        USBTRACE("\r\nConf:"), D_PrintHex(bConfNum, 0x80);
-                        USBTRACE(" Int:"), D_PrintHex(buf_ptr[2], 0x80);
-                        USBTRACE(" Alt:"), D_PrintHex(buf_ptr[3], 0x80);
-                        USBTRACE(" EPs:"), D_PrintHex(buf_ptr[4], 0x80);
-                        USBTRACE(" IntCl:"), D_PrintHex(buf_ptr[5], 0x80);
-                        USBTRACE(" IntSubCl:"), D_PrintHex(buf_ptr[6], 0x80);
-                        USBTRACE("\r\n");
-
-                        if( buf_ptr[5] == USB_CLASS_AUDIO && buf_ptr[6] == USB_SUBCLASS_MIDISTREAMING ) {  //p[5]; bInterfaceClass = 1(Audio), p[6]; bInterfaceSubClass = 3(MIDI Streaming)
-                                isMidiFound = true; //MIDI device found.
-                                isMidi      = true;
-                                USBTRACE("MIDI Device\r\n");
-                        }else{
-                                isMidi = false;
-                                USBTRACE("No MIDI Device\r\n");
-                        }
-                        break;
-                  case USB_DESCRIPTOR_ENDPOINT :
-                        epDesc = (USB_ENDPOINT_DESCRIPTOR *)buf_ptr;
-                        USBTRACE("-EPAddr:"), D_PrintHex(epDesc->bEndpointAddress, 0x80);
-                        USBTRACE(" bmAttr:"), D_PrintHex(epDesc->bmAttributes, 0x80);
-                        USBTRACE2(" MaxPktSz:", (uint8_t)epDesc->wMaxPacketSize);
-                        if ((epDesc->bmAttributes & 0x02) == 2) {//bulk
-                                uint8_t index;
-                                if( isMidi )
-                                        index = ((epDesc->bEndpointAddress & 0x80) == 0x80) ? epDataInIndex : epDataOutIndex;
-                                else
-                                        index = ((epDesc->bEndpointAddress & 0x80) == 0x80) ? epDataInIndexVSP : epDataOutIndexVSP;
-                                epInfo[index].epAddr     = (epDesc->bEndpointAddress & 0x0F);
-                                epInfo[index].maxPktSize = (uint8_t)epDesc->wMaxPacketSize;
-                                bNumEP ++;
-#ifdef DEBUG_USB_HOST
-                                PrintEndpointDescriptor(epDesc);
-#endif
-                        }
-                        break;
-                  default:
-                        break;
-                }//switch( descr_type
-                buf_ptr += descr_length;    //advance buffer pointer
-        }//while( buf_ptr <=...
-}
-
 /* Performs a cleanup after failed Init() attempt */
 uint8_t USBH_MIDI::Release()
 {
+        if(pFuncOnRelease && bPollEnable)
+                pFuncOnRelease(); // Call the user function
+
         pUsb->GetAddressPool().FreeAddress(bAddress);
-        bNumEP       = 1;               //must have to be reset to 1
         bAddress     = 0;
         bPollEnable  = false;
         readPtr      = 0;
+
         return 0;
+}
+
+/* Setup for well known vendor/device specific configuration */
+void USBH_MIDI::setupDeviceSpecific()
+{
+        // Novation
+        if( vid == 0x1235 ) {
+                // LaunchPad and LaunchKey endpoint attribute is interrupt 
+                // https://github.com/YuuichiAkagawa/USBH_MIDI/wiki/Novation-USB-Product-ID-List
+
+                // LaunchPad: 0x20:S, 0x36:Mini, 0x51:Pro, 0x69:MK2
+                if( pid == 0x20 || pid == 0x36 || pid == 0x51 || pid == 0x69 ) {
+                        bTransferTypeMask = 2;
+                        return;
+                }
+
+                // LaunchKey: 0x30-32,  0x35:Mini, 0x7B-0x7D:MK2, 0x0102,0x113-0x122:MiniMk3, 0x134-0x137:MK3
+                if( (0x30 <= pid && pid <= 0x32) || pid == 0x35 || (0x7B <= pid && pid <= 0x7D) 
+                  || pid == 0x102 || (0x113 <= pid && pid <= 0x122) || (0x134 <= pid && pid <= 0x137) ) {
+                        bTransferTypeMask = 2;
+                        return;
+                }
+        }
 }
 
 /* Receive data from MIDI device */
@@ -331,7 +315,10 @@ uint8_t USBH_MIDI::RecvData(uint16_t *bytes_rcvd, uint8_t *dataptr)
 {
         *bytes_rcvd = (uint16_t)epInfo[epDataInIndex].maxPktSize;
         uint8_t  r = pUsb->inTransfer(bAddress, epInfo[epDataInIndex].epAddr, bytes_rcvd, dataptr);
-
+#ifdef EXTRADEBUG
+        if( r )
+                USBTRACE2("inTransfer():", r);
+#endif
         if( *bytes_rcvd < (MIDI_EVENT_PACKET_SIZE-4)){
                 dataptr[*bytes_rcvd]     = '\0';
                 dataptr[(*bytes_rcvd)+1] = '\0';
@@ -340,12 +327,12 @@ uint8_t USBH_MIDI::RecvData(uint16_t *bytes_rcvd, uint8_t *dataptr)
 }
 
 /* Receive data from MIDI device */
-uint8_t USBH_MIDI::RecvData(uint8_t *outBuf)
+uint8_t USBH_MIDI::RecvData(uint8_t *outBuf, bool isRaw)
 {
         uint8_t rcode = 0;     //return code
         uint16_t  rcvd;
 
-        if( bPollEnable == false ) return false;
+        if( bPollEnable == false ) return 0;
 
         //Checking unprocessed message in buffer.
         if( readPtr != 0 && readPtr < MIDI_EVENT_PACKET_SIZE ){
@@ -368,61 +355,61 @@ uint8_t USBH_MIDI::RecvData(uint8_t *outBuf)
         }
 
 RecvData_return_from_buffer:
+        uint8_t m;
+        uint8_t cin = recvBuf[readPtr];
+        if( isRaw == true ) {
+                *(outBuf++) = cin;
+        }
         readPtr++;
-        outBuf[0] = recvBuf[readPtr];
-        readPtr++;
-        outBuf[1] = recvBuf[readPtr];
-        readPtr++;
-        outBuf[2] = recvBuf[readPtr];
-        readPtr++;
-        return lookupMsgSize(outBuf[0]);
+        *(outBuf++) = m = recvBuf[readPtr++];
+        *(outBuf++) =     recvBuf[readPtr++];
+        *(outBuf++) =     recvBuf[readPtr++];
+
+        return getMsgSizeFromCin(cin & 0x0f);
 }
 
 /* Send data to MIDI device */
 uint8_t USBH_MIDI::SendData(uint8_t *dataptr, uint8_t nCable)
 {
         uint8_t buf[4];
-        uint8_t msg;
+        uint8_t status = dataptr[0];
 
-        msg = dataptr[0];
-        // SysEx long message ?
-        if( msg == 0xf0 )
-        {
+        uint8_t cin =  convertStatus2Cin(status);
+        if ( status == 0xf0 ) {
+                // SysEx long message
                 return SendSysEx(dataptr, countSysExDataSize(dataptr), nCable);
         }
 
-        buf[0] = (nCable << 4) | (msg >> 4);
-        if( msg < 0xf0 ) msg = msg & 0xf0;
-
-
         //Building USB-MIDI Event Packets
+        buf[0] = (uint8_t)(nCable << 4) | cin;
         buf[1] = dataptr[0];
-        buf[2] = dataptr[1];
-        buf[3] = dataptr[2];
 
-        switch(lookupMsgSize(msg)) {
+        uint8_t msglen = getMsgSizeFromCin(cin);
+        switch(msglen) {
           //3 bytes message
           case 3 :
-                if(msg == 0xf2) {//system common message(SPP)
-                        buf[0] = (nCable << 4) | 3;
-                }
+                buf[2] = dataptr[1];
+                buf[3] = dataptr[2];
                 break;
 
           //2 bytes message
           case 2 :
-                if(msg == 0xf1 || msg == 0xf3) {//system common message(MTC/SongSelect)
-                        buf[0] = (nCable << 4) | 2;
-                }
+                buf[2] = dataptr[1];
                 buf[3] = 0;
                 break;
 
           //1 byte message
           case 1 :
-          default :
                 buf[2] = 0;
                 buf[3] = 0;
                 break;
+          default :
+                break;
         }
+#ifdef EXTRADEBUG
+        //Dump for raw USB-MIDI event packet
+        Notify(PSTR("SendData():"), 0x80), D_PrintHex((buf[0]), 0x80), D_PrintHex((buf[1]), 0x80), D_PrintHex((buf[2]), 0x80), D_PrintHex((buf[3]), 0x80), Notify(PSTR("\r\n"), 0x80);
+#endif
         return pUsb->outTransfer(bAddress, epInfo[epDataOutIndex].epAddr, 4, buf);
 }
 
@@ -443,65 +430,30 @@ void USBH_MIDI::PrintEndpointDescriptor( const USB_ENDPOINT_DESCRIPTOR* ep_ptr )
 /*Return                                 */
 /*  0 : undefined message                */
 /*  0<: Vaild message size(1-3)          */
-uint8_t USBH_MIDI::lookupMsgSize(uint8_t midiMsg)
+//uint8_t USBH_MIDI::lookupMsgSize(uint8_t midiMsg, uint8_t cin)
+uint8_t USBH_MIDI::lookupMsgSize(uint8_t status, uint8_t cin)
 {
-        uint8_t msgSize = 0;
-
-        if( midiMsg < 0xf0 ) midiMsg &= 0xf0;
-        switch(midiMsg) {
-          //3 bytes messages
-          case 0xf2 : //system common message(SPP)
-          case 0x80 : //Note off
-          case 0x90 : //Note on
-          case 0xa0 : //Poly KeyPress
-          case 0xb0 : //Control Change
-          case 0xe0 : //PitchBend Change
-                msgSize = 3;
-                break;
-
-          //2 bytes messages
-          case 0xf1 : //system common message(MTC)
-          case 0xf3 : //system common message(SongSelect)
-          case 0xc0 : //Program Change
-          case 0xd0 : //Channel Pressure
-                msgSize = 2;
-                break;
-
-          //1 byte messages
-          case 0xf8 : //system realtime message
-          case 0xf9 : //system realtime message
-          case 0xfa : //system realtime message
-          case 0xfb : //system realtime message
-          case 0xfc : //system realtime message
-          case 0xfe : //system realtime message
-          case 0xff : //system realtime message
-                msgSize = 1;
-                break;
-
-          //undefine messages
-          default :
-                break;
+        if( cin == 0 ){
+                cin =  convertStatus2Cin(status);
         }
-        return msgSize;
+        return getMsgSizeFromCin(cin);
 }
 
 /* SysEx data size counter */
-unsigned int USBH_MIDI::countSysExDataSize(uint8_t *dataptr)
+uint16_t USBH_MIDI::countSysExDataSize(uint8_t *dataptr)
 {
-        unsigned int c = 1;
+        uint16_t c = 1;
 
         if( *dataptr != 0xf0 ){ //not SysEx
                 return 0;
         }
 
         //Search terminator(0xf7)
-        while(*dataptr != 0xf7)
-        {
+        while(*dataptr != 0xf7) {
                 dataptr++;
                 c++;
-
-                //Limiter (upto 256 bytes)
-                if(c > 256){
+                //Limiter (default: 256 bytes)
+                if(c > MIDI_MAX_SYSEX_SIZE){
                         c = 0;
                         break;
                 }
@@ -510,18 +462,20 @@ unsigned int USBH_MIDI::countSysExDataSize(uint8_t *dataptr)
 }
 
 /* Send SysEx message to MIDI device */
-uint8_t USBH_MIDI::SendSysEx(uint8_t *dataptr, unsigned int datasize, uint8_t nCable)
+uint8_t USBH_MIDI::SendSysEx(uint8_t *dataptr, uint16_t datasize, uint8_t nCable)
 {
-        uint8_t buf[64];
-        uint8_t rc;
-        unsigned int n = datasize;
-        unsigned int pktSize = (n*10/3+7)/10*4;   //Calculate total USB MIDI packet size
+        uint8_t buf[MIDI_EVENT_PACKET_SIZE];
+        uint8_t rc = 0;
+        uint16_t n = datasize;
         uint8_t wptr = 0;
         uint8_t maxpkt = epInfo[epDataInIndex].maxPktSize;
 
         USBTRACE("SendSysEx:\r\t");
         USBTRACE2(" Length:\t", datasize);
+#ifdef EXTRADEBUG
+        uint16_t pktSize = (n+2)/3;   //Calculate total USB MIDI packet size
         USBTRACE2(" Total pktSize:\t", pktSize);
+#endif
 
         while(n > 0) {
                 //Byte 0
@@ -533,17 +487,18 @@ uint8_t USBH_MIDI::SendSysEx(uint8_t *dataptr, unsigned int datasize, uint8_t nC
                         buf[wptr++] = *(dataptr++);
                         buf[wptr++] = 0x00;
                         buf[wptr++] = 0x00;
-                        n = n - 1;
+                        n = 0;
                         break;
                     case 2 :
                         buf[wptr++] = (nCable << 4) | 0x6;   //x6 SysEx ends with following two bytes.
                         buf[wptr++] = *(dataptr++);
                         buf[wptr++] = *(dataptr++);
                         buf[wptr++] = 0x00;
-                        n = n - 2;
+                        n = 0;
                         break;
                     case 3 :
                         buf[wptr]   = (nCable << 4) | 0x7;   //x7 SysEx ends with following three bytes.
+                        // fall through
                     default :
                         wptr++;
                         buf[wptr++] = *(dataptr++);
@@ -558,73 +513,186 @@ uint8_t USBH_MIDI::SendSysEx(uint8_t *dataptr, unsigned int datasize, uint8_t nC
                         if( (rc = pUsb->outTransfer(bAddress, epInfo[epDataOutIndex].epAddr, wptr, buf)) != 0 ){
                                 break;
                         }
-                        wptr = 0;  //rewind data pointer
+                        wptr = 0;  //rewind write pointer
                 }
         }
         return(rc);
 }
 
-/* Send raw data to MIDI device */
-uint8_t USBH_MIDI::SendRawData(uint16_t bytes_send, uint8_t *dataptr)
+uint8_t USBH_MIDI::extractSysExData(uint8_t *p, uint8_t *buf)
 {
-        return pUsb->outTransfer(bAddress, epInfo[epDataOutIndex].epAddr, bytes_send, dataptr);
-
-}
-
-//
-// System Exclusive packet data management class
-//
-MidiSysEx::MidiSysEx()
-{
-        clear();
-}
-
-void MidiSysEx::clear()
-{
-        pos = 0;
-        buf[0] = 0;
-}
-
-MidiSysEx::Status MidiSysEx::set(uint8_t *p)
-{
-        MidiSysEx::Status rc = MidiSysEx::ok;
+        uint8_t rc = 0;
         uint8_t cin = *(p) & 0x0f;
 
         //SysEx message?
-        if( (cin & 0xc) != 4 ) return MidiSysEx::nonsysex;
+        if( (cin & 0xc) != 4 ) return rc;
 
         switch(cin) {
             case 4:
             case 7:
-                if( pos+2 < MIDI_EVENT_PACKET_SIZE ) {
-                        buf[pos++] = *(p+1);
-                        buf[pos++] = *(p+2);
-                        buf[pos++] = *(p+3);
-                }else{
-                        rc = MidiSysEx::overflow;
-                }
-                break;
-            case 5:
-                if( pos+1 < MIDI_EVENT_PACKET_SIZE ) {
-                        buf[pos++] = *(p+1);
-                        buf[pos++] = *(p+2);
-                }else{
-                        rc = MidiSysEx::overflow;
-                }
+                *buf++ = *(p+1);
+                *buf++ = *(p+2);
+                *buf++ = *(p+3);
+                rc = 3;
                 break;
             case 6:
-                if( pos < MIDI_EVENT_PACKET_SIZE ) {
-                        buf[pos++] = *(p+1);
-                }else{
-                        rc = MidiSysEx::overflow;
-                }
+                *buf++ = *(p+1);
+                *buf++ = *(p+2);
+                rc = 2;
+                break;
+            case 5:
+                *buf++ = *(p+1);
+                rc = 1;
                 break;
             default:
                 break;
         }
-        //SysEx end?
-        if((cin & 0x3) != 0) {
-                rc = MidiSysEx::done;
-        }
         return(rc);
+}
+
+// Configuration Descriptor Parser
+// Copied from confdescparser.h and modifiy.
+MidiDescParser::MidiDescParser(UsbMidiConfigXtracter *xtractor, bool modeMidi) :
+theXtractor(xtractor),
+stateParseDescr(0),
+dscrLen(0),
+dscrType(0),
+nEPs(0),
+isMidiSearch(modeMidi){
+        theBuffer.pValue = varBuffer;
+        valParser.Initialize(&theBuffer);
+        theSkipper.Initialize(&theBuffer);
+}
+void MidiDescParser::Parse(const uint16_t len, const uint8_t *pbuf, const uint16_t &offset __attribute__((unused))) {
+        uint16_t cntdn = (uint16_t)len;
+        uint8_t *p = (uint8_t*)pbuf;
+
+        while(cntdn)
+                if(!ParseDescriptor(&p, &cntdn))
+                        return;
+}
+
+bool MidiDescParser::ParseDescriptor(uint8_t **pp, uint16_t *pcntdn) {
+        USB_CONFIGURATION_DESCRIPTOR* ucd = reinterpret_cast<USB_CONFIGURATION_DESCRIPTOR*>(varBuffer);
+        USB_INTERFACE_DESCRIPTOR* uid = reinterpret_cast<USB_INTERFACE_DESCRIPTOR*>(varBuffer);
+        switch(stateParseDescr) {
+                case 0:
+                        theBuffer.valueSize = 2;
+                        valParser.Initialize(&theBuffer);
+                        stateParseDescr = 1;
+                        // fall through
+                case 1:
+                        if(!valParser.Parse(pp, pcntdn))
+                                return false;
+                        dscrLen = *((uint8_t*)theBuffer.pValue);
+                        dscrType = *((uint8_t*)theBuffer.pValue + 1);
+                        stateParseDescr = 2;
+                        // fall through
+                case 2:
+                        // This is a sort of hack. Assuming that two bytes are all ready in the buffer
+                        //      the pointer is positioned two bytes ahead in order for the rest of descriptor
+                        //      to be read right after the size and the type fields.
+                        // This should be used carefully. varBuffer should be used directly to handle data
+                        //      in the buffer.
+                        theBuffer.pValue = varBuffer + 2;
+                        stateParseDescr = 3;
+                        // fall through
+                case 3:
+                        switch(dscrType) {
+                                case USB_DESCRIPTOR_INTERFACE:
+                                        isGoodInterface = false;
+                                        break;
+                                case USB_DESCRIPTOR_CONFIGURATION:
+                                case USB_DESCRIPTOR_ENDPOINT:
+                                case HID_DESCRIPTOR_HID:
+                                        break;
+                        }
+                        theBuffer.valueSize = dscrLen - 2;
+                        valParser.Initialize(&theBuffer);
+                        stateParseDescr = 4;
+                        // fall through
+                case 4:
+                        switch(dscrType) {
+                                case USB_DESCRIPTOR_CONFIGURATION:
+                                        if(!valParser.Parse(pp, pcntdn))
+                                                return false;
+                                        confValue = ucd->bConfigurationValue;
+                                        break;
+                                case USB_DESCRIPTOR_INTERFACE:
+                                        if(!valParser.Parse(pp, pcntdn))
+                                                return false;
+                                        USBTRACE("Interface descriptor:\r\n");
+                                        USBTRACE2(" Inf#:\t\t", uid->bInterfaceNumber);
+                                        USBTRACE2(" Alt:\t\t", uid->bAlternateSetting);
+                                        USBTRACE2(" EPs:\t\t", uid->bNumEndpoints);
+                                        USBTRACE2(" IntCl:\t\t", uid->bInterfaceClass);
+                                        USBTRACE2(" IntSubcl:\t", uid->bInterfaceSubClass);
+                                        USBTRACE2(" Protocol:\t", uid->bInterfaceProtocol);
+                                        // MIDI check mode ?
+                                        if( isMidiSearch ){ //true: MIDI Streaming, false: ALL
+                                                if( uid->bInterfaceClass == USB_CLASS_AUDIO && uid->bInterfaceSubClass == USB_SUBCLASS_MIDISTREAMING ) {
+                                                        // MIDI found.
+                                                        USBTRACE("+MIDI found\r\n\r\n");
+                                                }else{
+                                                        USBTRACE("-MIDI not found\r\n\r\n");
+                                                        break;
+                                                }
+                                        }
+                                        isGoodInterface = true;
+                                        // Initialize the counter if no two endpoints can be found in one interface.
+                                        if(nEPs < 2)
+                                                // reset endpoint counter
+                                                nEPs = 0;
+                                        break;
+                                case USB_DESCRIPTOR_ENDPOINT:
+                                        if(!valParser.Parse(pp, pcntdn))
+                                                return false;
+                                        if(isGoodInterface && nEPs < 2){
+                                                USBTRACE(">Extracting endpoint\r\n");
+                                                if( theXtractor->EndpointXtract(confValue, 0, 0, 0, (USB_ENDPOINT_DESCRIPTOR*)varBuffer) ) 
+                                                        nEPs++;
+                                        }
+                                        break;
+
+                                default:
+                                        if(!theSkipper.Skip(pp, pcntdn, dscrLen - 2))
+                                                return false;
+                        }
+                        theBuffer.pValue = varBuffer;
+                        stateParseDescr = 0;
+        }
+        return true;
+}
+
+/* Extracts endpoint information from config descriptor */
+bool USBH_MIDI::EndpointXtract(uint8_t conf __attribute__((unused)),
+        uint8_t iface __attribute__((unused)),
+        uint8_t alt __attribute__((unused)),
+        uint8_t proto __attribute__((unused)),
+        const USB_ENDPOINT_DESCRIPTOR *pep)
+{
+        uint8_t index;
+
+#ifdef DEBUG_USB_HOST
+        PrintEndpointDescriptor(pep);
+#endif
+        // Is the endpoint transfer type bulk?
+        if((pep->bmAttributes & bTransferTypeMask) == USB_TRANSFER_TYPE_BULK) {
+                USBTRACE("+valid EP found.\r\n");
+                index = (pep->bEndpointAddress & 0x80) == 0x80 ? epDataInIndex : epDataOutIndex;
+        } else {
+                USBTRACE("-No valid EP found.\r\n");
+                return false;
+        } 
+
+        // Fill the rest of endpoint data structure
+        epInfo[index].epAddr = (pep->bEndpointAddress & 0x0F);
+        // The maximum packet size for the USB Host Shield 2.0 library is 64 bytes.
+        if(pep->wMaxPacketSize > MIDI_EVENT_PACKET_SIZE) {
+                epInfo[index].maxPktSize = MIDI_EVENT_PACKET_SIZE;
+        } else {
+                epInfo[index].maxPktSize = (uint8_t)pep->wMaxPacketSize;
+        }
+
+        return true;
 }

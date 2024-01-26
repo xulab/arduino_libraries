@@ -189,7 +189,7 @@ void SPP::ACLData(uint8_t* l2capinbuf) {
                         }
 #endif
                 } else if(l2capinbuf[6] == sdp_dcid[0] && l2capinbuf[7] == sdp_dcid[1]) { // SDP
-                        if(l2capinbuf[8] == SDP_SERVICE_SEARCH_ATTRIBUTE_REQUEST_PDU) {
+                        if(l2capinbuf[8] == SDP_SERVICE_SEARCH_ATTRIBUTE_REQUEST) {
                                 if(((l2capinbuf[16] << 8 | l2capinbuf[17]) == SERIALPORT_UUID) || ((l2capinbuf[16] << 8 | l2capinbuf[17]) == 0x0000 && (l2capinbuf[18] << 8 | l2capinbuf[19]) == SERIALPORT_UUID)) { // Check if it's sending the full UUID, see: https://www.bluetooth.org/Technical/AssignedNumbers/service_discovery.htm, we will just check the first four bytes
                                         if(firstMessage) {
                                                 serialPortResponse1(l2capinbuf[9], l2capinbuf[10]);
@@ -370,7 +370,7 @@ void SPP::ACLData(uint8_t* l2capinbuf) {
 #endif
                                                 sendRfcommCredit(rfcommChannelConnection, rfcommDirection, 0, RFCOMM_UIH, 0x10, sizeof (rfcommDataBuffer)); // Send credit
                                                 creditSent = true;
-                                                timer = millis();
+                                                timer = (uint32_t)millis();
                                                 waitForLastCommand = true;
                                         }
                                 } else if(rfcommChannelType == RFCOMM_UIH && l2capinbuf[10] == 0x01) { // UIH Command with credit
@@ -421,7 +421,7 @@ void SPP::ACLData(uint8_t* l2capinbuf) {
 }
 
 void SPP::Run() {
-        if(waitForLastCommand && (millis() - timer) > 100) { // We will only wait 100ms and see if the UIH Remote Port Negotiation Command is send, as some deviced don't send it
+        if(waitForLastCommand && (int32_t)((uint32_t)millis() - timer) > 100) { // We will only wait 100ms and see if the UIH Remote Port Negotiation Command is send, as some deviced don't send it
 #ifdef DEBUG_USB_HOST
                 Notify(PSTR("\r\nRFCOMM Connection is now established - Automatic\r\n"), 0x80);
 #endif
@@ -536,7 +536,7 @@ void SPP::SDP_Command(uint8_t* data, uint8_t nbytes) { // See page 223 in the Bl
 }
 
 void SPP::serviceNotSupported(uint8_t transactionIDHigh, uint8_t transactionIDLow) { // See page 235 in the Bluetooth specs
-        l2capoutbuf[0] = SDP_SERVICE_SEARCH_ATTRIBUTE_RESPONSE_PDU;
+        l2capoutbuf[0] = SDP_SERVICE_SEARCH_ATTRIBUTE_RESPONSE;
         l2capoutbuf[1] = transactionIDHigh;
         l2capoutbuf[2] = transactionIDLow;
         l2capoutbuf[3] = 0x00; // MSB Parameter Length
@@ -553,7 +553,7 @@ void SPP::serviceNotSupported(uint8_t transactionIDHigh, uint8_t transactionIDLo
 }
 
 void SPP::serialPortResponse1(uint8_t transactionIDHigh, uint8_t transactionIDLow) {
-        l2capoutbuf[0] = SDP_SERVICE_SEARCH_ATTRIBUTE_RESPONSE_PDU;
+        l2capoutbuf[0] = SDP_SERVICE_SEARCH_ATTRIBUTE_RESPONSE;
         l2capoutbuf[1] = transactionIDHigh;
         l2capoutbuf[2] = transactionIDLow;
         l2capoutbuf[3] = 0x00; // MSB Parameter Length
@@ -615,7 +615,7 @@ void SPP::serialPortResponse1(uint8_t transactionIDHigh, uint8_t transactionIDLo
 }
 
 void SPP::serialPortResponse2(uint8_t transactionIDHigh, uint8_t transactionIDLow) {
-        l2capoutbuf[0] = SDP_SERVICE_SEARCH_ATTRIBUTE_RESPONSE_PDU;
+        l2capoutbuf[0] = SDP_SERVICE_SEARCH_ATTRIBUTE_RESPONSE;
         l2capoutbuf[1] = transactionIDHigh;
         l2capoutbuf[2] = transactionIDLow;
         l2capoutbuf[3] = 0x00; // MSB Parameter Length

@@ -16,19 +16,21 @@
 #ifndef _SPI_TGM_H_H
 #define _SPI_TGM_H_H
 #include "Arduino.h"
+#include "TGM_CACHE.h"
+#include "TGM_AD9850.h"
+#include "TGM_PGA2310.h"
 
 #define info_string_size 50
+#include "TGM_type.h"
 
 /*-----------TGM_config-------------*/
 /*-----------version-------------*/
 #define TGM_VERSION 12
 #define TGM_INFO_ADDR 0
-#define TGM_VERSION_STRING_SIZE info_string_size
 /*-----------version-------------*/
 
 /*-----------error-------------*/
 #define ERROR_ADDR 100
-#define ERROR_STRING_SIZE info_string_size
 #define NO_ERROR 0
 /*-----------error-------------*/
 
@@ -78,9 +80,11 @@ private:
 
 public:
 
+	ton _tone;
 	void init();
 	void init_TGM();
-	void wait_command();
+	// void wait_command();
+	int wait_command(long timeout = -1); 
 	void set_tone();
 	void set_fq(uint32_t fq);
 	void set_vol(byte vol);
