@@ -2,7 +2,7 @@
 * Brian R Taylor
 * brian.taylor@bolderflight.com
 * 
-* Copyright (c) 2022 Bolder Flight Systems Inc
+* Copyright (c) 2023 Bolder Flight Systems Inc
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the “Software”), to
@@ -28,46 +28,25 @@
 
 #if defined(ARDUINO)
 #include <Arduino.h>
-#endif
+#else
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <algorithm>
-#include <type_traits>
-#include "units.h"  // NOLINT
+#endif
 
 namespace bfs {
 
-template<typename T>
 class Iir {
  public:
-  static_assert(std::is_floating_point<T>::value,
-                "Only floating point types supported");
-  void Init(T cutoff_hz, T samp_hz) {
-    T fc = cutoff_hz / samp_hz;
-    b_ = static_cast<T>(2) - std::cos(BFS_2PI<T> * fc) -
-          std::sqrt(std::pow(static_cast<T>(2) - std::cos(BFS_2PI<T> * fc),
-          static_cast<T>(2)) - static_cast<T>(1));
-    a_ = static_cast<T>(1) - b_;
-  }
-  void Init(T cutoff_hz, T samp_hz, T initial_val) {
-    T fc = cutoff_hz / samp_hz;
-    b_ = static_cast<T>(2) - std::cos(BFS_2PI<T> * fc) -
-          std::sqrt(std::pow(static_cast<T>(2) - std::cos(BFS_2PI<T> * fc),
-          static_cast<T>(2)) - static_cast<T>(1));
-    a_ = static_cast<T>(1) - b_;
-    prev_output_ = initial_val;
-  }
-  T Filter(T val) {
-    T ret;
-    ret = a_ * val + b_ * prev_output_;
-    prev_output_ = ret;
-    return ret;
-  }
+  void Init(const float cutoff_hz, const float samp_hz);
+  void Init(const float cutoff_hz, const float samp_hz,
+            const float initial_val);
+  float Filter(const float val);
 
  private:
-  T a_, b_;
-  T prev_output_ = static_cast<T>(0);
+  float a_, b_;
+  float fc_, ret_;
+  float prev_output_ = 0.0f;
 };
 
 }  // namespace bfs

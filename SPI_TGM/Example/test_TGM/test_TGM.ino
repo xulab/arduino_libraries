@@ -42,6 +42,26 @@ void setup()
 
 void loop()
 {
+	/*******test timeout*******/
+	/*******test timeout*******/
+	long tmpTime = millis();
+	int res = SPI_TGM.quick_tone_vol(duration, fq1, vol, 0, 1000);
+	if (res == -1)
+	{
+		Serial.print("start quick_tone at:");
+		Serial.println(tmpTime);
+		Serial.print("quick_tone res:");
+		Serial.println(res);
+		Serial.print("quick_tone time:");
+		Serial.println(millis() - tmpTime);
+	}
+	else
+	{
+		Serial.println("pure tone");
+	}
+	delay(duration + isi);
+	/*******test timeout*******/
+	/*******test timeout*******/
 
 	// SPI_TGM.set_tone_fq_vol(1000, vol);
 	// delay(300);
@@ -72,21 +92,6 @@ void loop()
 	// }
 	// SPI_TGM.tone_cancel();
 	// delay(2000);
-	Serial.print("digitalRead(48) = ");
-	Serial.println(digitalRead(48));
-
-	long tmpTime = millis();
-	Serial.print("start quick_tone at:");
-	Serial.println(tmpTime);
-	int res = SPI_TGM.quick_tone_vol(duration, fq1, vol, 0, 1000);
-	Serial.print("quick_tone res:");
-	Serial.println(res);
-	Serial.print("finish quick_tone at:");
-	Serial.println(millis());
-	Serial.print("quick_tone time:");
-	Serial.println(millis() - tmpTime);
-	Serial.println("pure tone");
-	delay(duration + isi);
 
 	// SPI_TGM.quick_tone_AM(duration, carrierFq, AMFq, vol);
 	// Serial.println("AM");

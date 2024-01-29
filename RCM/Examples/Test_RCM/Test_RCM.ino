@@ -16,7 +16,7 @@ byte _sec = 50;
 
 void setup()
 {
-Serial.begin(9600);
+Serial.begin(115200);
 	RCM.init();
   pinMode(SPEAKER, OUTPUT);
    digitalWrite(SPEAKER, LOW); 
