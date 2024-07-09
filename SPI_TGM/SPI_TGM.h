@@ -25,6 +25,8 @@
 #define Mega2560_PER 48
 #define Mega2560_INFO 49
 #define Mega2560_WR 46
+#define Mega2560_REQ2 44
+#define Mega2560_PER2 45
 
 /*-----------TGM_config-------------*/
 /*-----------version-------------*/
@@ -178,7 +180,7 @@ public:
 	ton tone;
 	fqinfo fq_info;
 	// void init(byte boardtype);
-	void init(byte boardtype, int req_pin = Mega2560_REQ, int per_pin = Mega2560_PER, int info_pin = Mega2560_INFO, int wr_pin = Mega2560_WR);
+	void init(byte boardtype);
 	// void write(uint32_t addr, uint16_t size, char *data);
 	int write(uint32_t addr, uint16_t size, char *data, long timeout = -1);
 	// void read(uint32_t addr, uint16_t size, char *data);
@@ -228,5 +230,6 @@ int read_tone(long timeout = -1);
 };
 
 extern SPI_TGMClass SPI_TGM;
+extern SPI_TGMClass SPI_TGM2;
 
 #endif

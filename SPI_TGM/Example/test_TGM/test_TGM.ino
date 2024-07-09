@@ -21,10 +21,7 @@ uint32_t clicksPeriod = 30;
 uint32_t clicksPeriod1 = 5;
 
 uint32_t chord[] = {2000, 3000, 4000};
-int SPI_TGM_REQ = 44;
-int SPI_TGM_PER = 45;
 
-SPI_TGMClass SPI_TGM2;
 void setup()
 {
 	pinMode(pin, OUTPUT);
@@ -32,7 +29,7 @@ void setup()
 	digitalWrite(pin, LOW);
 	delay(50);
 	SPI_TGM.init(MEGA2560);
-	SPI_TGM2.init(MEGA2560, SPI_TGM_REQ, SPI_TGM_PER);
+	SPI_TGM2.init(MEGA2560);
 	Serial.begin(115200);
 	Serial.print("random= ");
 	random(10);
@@ -44,44 +41,52 @@ void loop()
 {
 	/*******test timeout*******/
 	/*******test timeout*******/
-	long tmpTime = millis();
-	int res = SPI_TGM.quick_tone_vol(duration, fq1, vol, 0, 1000);
-	if (res == -1)
-	{
-		Serial.print("start quick_tone at:");
-		Serial.println(tmpTime);
-		Serial.print("quick_tone res:");
-		Serial.println(res);
-		Serial.print("quick_tone time:");
-		Serial.println(millis() - tmpTime);
-	}
-	else
-	{
-		Serial.println("pure tone");
-	}
-	delay(duration + isi);
+	// long tmpTime = millis();
+	// int res = SPI_TGM.quick_tone_vol(duration, fq1, vol, 0, 1000);
+	// if (res == -1)
+	// {
+	// 	Serial.print("start quick_tone at:");
+	// 	Serial.println(tmpTime);
+	// 	Serial.print("quick_tone res:");
+	// 	Serial.println(res);
+	// 	Serial.print("quick_tone time:");
+	// 	Serial.println(millis() - tmpTime);
+	// }
+	// else
+	// {
+	// 	Serial.println("pure tone");
+	// }
+	// delay(duration + isi);
 	/*******test timeout*******/
 	/*******test timeout*******/
 
-	// SPI_TGM.set_tone_fq_vol(1000, vol);
-	// delay(300);
-	// SPI_TGM.set_tone_fq_vol(2000, vol);
-	// delay(300);
-	// SPI_TGM.set_tone_fq_vol(3000, vol);
-	// delay(300);
-	// SPI_TGM.set_tone_fq_vol(4000, vol);
-	// delay(300);
-	// // SPI_TGM.tone_cancel();
-	// SPI_TGM.tone_cancel_cosramp_2ms();
-	// delay(2000);
 
-	// SPI_TGM.quick_tone_vol(300, 1000, vol);
+    int tmp_fq;
+	tmp_fq = 1000;
+	SPI_TGM.quick_tone_vol(300, tmp_fq, vol);
+	delay(305);
+	tmp_fq = tmp_fq * 1.2;
+	SPI_TGM.quick_tone_vol(300, tmp_fq, vol);
+	delay(305);
+	tmp_fq = tmp_fq * 1.2;
+	SPI_TGM.quick_tone_vol(300, tmp_fq, vol);
+	delay(305);
+	tmp_fq = tmp_fq * 1.2;
+	SPI_TGM.quick_tone_vol(300, tmp_fq, vol);
+	delay(305);
+	delay(2000);
+
+	// tmp_fq = 2000;
+	// SPI_TGM2.quick_tone_vol(300, tmp_fq, vol);
 	// delay(305);
-	// SPI_TGM.quick_tone_vol(300, 2000, vol);
+	// tmp_fq = tmp_fq * 1.2;
+	// SPI_TGM2.quick_tone_vol(300, tmp_fq, vol);
 	// delay(305);
-	// SPI_TGM.quick_tone_vol(300, 3000, vol);
+	// tmp_fq = tmp_fq * 1.2;
+	// SPI_TGM2.quick_tone_vol(300, tmp_fq, vol);
 	// delay(305);
-	// SPI_TGM.quick_tone_vol(300, 4000, vol);
+	// tmp_fq = tmp_fq * 1.2;
+	// SPI_TGM2.quick_tone_vol(300, tmp_fq, vol);
 	// delay(305);
 	// delay(2000);
 
@@ -93,9 +98,10 @@ void loop()
 	// SPI_TGM.tone_cancel();
 	// delay(2000);
 
-	// SPI_TGM.quick_tone_AM(duration, carrierFq, AMFq, vol);
-	// Serial.println("AM");
-	// delay(duration + isi);
+	SPI_TGM.quick_tone_AM(duration, carrierFq, AMFq, vol);
+	// SPI_TGM2.quick_sweep_exp_cosramp_5ms(duration, fq0, fq1, vol, 200);
+	Serial.println("AM");
+	delay(duration + isi);
 
 	// SPI_TGM.quick_tone_clicks_cosramp_2ms(duration, carrierFq, clicksDur, clicksPeriod, vol);
 	// Serial.println("clicks");

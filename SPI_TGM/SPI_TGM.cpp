@@ -7,15 +7,13 @@
 
 #include <SPI_TGM.h>
 
-#pragma pack (1) //align to 1 byte.
+#pragma pack(1) // align to 1 byte.
 
-
-#define MINITERVAL 500*0.0625 //25us
+#define MINITERVAL 500 * 0.0625 // 25us
 #define RAWISISIZE 192
-uint16_t MAXCLOCKS=0xFFFF; //25us
+uint16_t MAXCLOCKS = 0xFFFF; // 25us
 
-
-void SPI_TGMClass::init(byte boardtype, int req_pin, int per_pin, int info_pin, int wr_pin)
+void SPI_TGMClass::init(byte boardtype)
 {
 	memset(&info, 0, sizeof(TGMinfo));
 	info.nSize = sizeof(TGMinfo);
@@ -36,10 +34,19 @@ void SPI_TGMClass::init(byte boardtype, int req_pin, int per_pin, int info_pin, 
 	_QUICK_TONE.version = TGM_VERSION;
 
 	memset(&fq_info, 0, sizeof(fq_info));
-	INFO = info_pin;
-	REQ = req_pin;
-	WR = wr_pin;
-	PER = per_pin;
+
+	if (this == &SPI_TGM)
+	{
+		REQ = Mega2560_REQ;
+		PER = Mega2560_PER;
+	}
+	else if (this == &SPI_TGM2)
+	{
+		REQ = Mega2560_REQ2;
+		PER = Mega2560_PER2;
+	}
+	INFO = Mega2560_INFO;
+	WR = Mega2560_WR;
 	CACHE_Class::init(MEGA2560);
 }
 
@@ -496,3 +503,4 @@ int SPI_TGMClass::read_tone(long timeout)
 }
 
 SPI_TGMClass SPI_TGM;
+SPI_TGMClass SPI_TGM2;
