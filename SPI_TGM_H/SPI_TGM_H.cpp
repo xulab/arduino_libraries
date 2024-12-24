@@ -1,4 +1,11 @@
-﻿/* version 11
+﻿/* version 12
+ * modified in 20210721
+ * suit for TGM_host_Ver03(esp32-s2) and teensy 3.6
+ * Compatible with arduino esp32 library version 2.0.17 
+ * add fucntions suit for TGM_NI_Ver01
+ * change: can specify the tone loop time now.
+ */
+/* version 11
  * modified in 20181129
  * only suit for teensy 3.6
  * change: add pre_sound_delay.
@@ -10,8 +17,6 @@
 #include <math.h>
 #include <SPI_TGM_H.h>
 #include <SPI.h>
-// #include <CACHE.h>
-// #include "TGM_CACHE.h"
 #include "TGM_parameter.h"
 
 #define DEBUG 1 
@@ -954,4 +959,3 @@ void SPI_TGMClass::set_tone() {
 }
 
 SPI_TGMClass SPI_TGM;
-

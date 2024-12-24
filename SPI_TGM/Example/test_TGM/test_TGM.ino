@@ -21,6 +21,7 @@ uint32_t clicksPeriod = 30;
 uint32_t clicksPeriod1 = 5;
 
 uint32_t chord[] = {2000, 3000, 4000};
+uint32_t chord2[] = {3000, 4000, 6000};
 
 void setup()
 {
@@ -60,21 +61,20 @@ void loop()
 	/*******test timeout*******/
 	/*******test timeout*******/
 
-
-    int tmp_fq;
-	tmp_fq = 1000;
-	SPI_TGM.quick_tone_vol(300, tmp_fq, vol);
-	delay(305);
-	tmp_fq = tmp_fq * 1.2;
-	SPI_TGM.quick_tone_vol(300, tmp_fq, vol);
-	delay(305);
-	tmp_fq = tmp_fq * 1.2;
-	SPI_TGM.quick_tone_vol(300, tmp_fq, vol);
-	delay(305);
-	tmp_fq = tmp_fq * 1.2;
-	SPI_TGM.quick_tone_vol(300, tmp_fq, vol);
-	delay(305);
-	delay(2000);
+	// int tmp_fq;
+	// tmp_fq = 1000;
+	// SPI_TGM.quick_tone_vol(300, tmp_fq, vol);
+	// delay(305);
+	// tmp_fq = tmp_fq * 1.2;
+	// SPI_TGM.quick_tone_vol(300, tmp_fq, vol);
+	// delay(305);
+	// tmp_fq = tmp_fq * 1.2;
+	// SPI_TGM.quick_tone_vol(300, tmp_fq, vol);
+	// delay(305);
+	// tmp_fq = tmp_fq * 1.2;
+	// SPI_TGM.quick_tone_vol(300, tmp_fq, vol);
+	// delay(305);
+	// delay(2000);
 
 	// tmp_fq = 2000;
 	// SPI_TGM2.quick_tone_vol(300, tmp_fq, vol);
@@ -90,56 +90,85 @@ void loop()
 	// delay(305);
 	// delay(2000);
 
-	// for (int i = 1000; i < 2000; i++)
+	// SPI_TGM.set_tone_fq_vol(3000, 192);
+	// delay(10);
+	// SPI_TGM.tone_cancel();
+	// delay(300);
+
+	// int tmp_t = 50;
+	// for (int i = 0; i < 10; i++)
 	// {
-	// 	SPI_TGM.set_tone_fq_vol(i, vol);
-	// 	delay(1);
+	// 	SPI_TGM.set_tone_fq_vol(1000, 192);
+	// 	delay(tmp_t);
+	// 	SPI_TGM.set_tone_fq_vol(3000, 192);
+	// 	delay(tmp_t);
+	// 	SPI_TGM.set_tone_fq_vol(2000, 192);
+	// 	delay(tmp_t);
+	// 	SPI_TGM.set_tone_fq_vol(5000, 192);
+	// 	delay(tmp_t);
+	// 	SPI_TGM.set_tone_fq_vol(4000, 192);
+	// 	delay(tmp_t);
 	// }
 	// SPI_TGM.tone_cancel();
-	// delay(2000);
+
+	// delay(3000);
+
+	int t = 1;
+	for (int i = 1000; i < 2000; i = i + t)
+	{
+		SPI_TGM.set_tone_fq_vol(i, vol);
+		delay(t);
+	}
+	SPI_TGM.tone_cancel();
+	delay(2000);
 
 	SPI_TGM.quick_tone_AM(duration, carrierFq, AMFq, vol);
 	// SPI_TGM2.quick_sweep_exp_cosramp_5ms(duration, fq0, fq1, vol, 200);
 	Serial.println("AM");
 	delay(duration + isi);
 
-	// SPI_TGM.quick_tone_clicks_cosramp_2ms(duration, carrierFq, clicksDur, clicksPeriod, vol);
-	// Serial.println("clicks");
-	// delay(duration + isi);
+	SPI_TGM.quick_tone_clicks_cosramp_2ms(duration, carrierFq, clicksDur, clicksPeriod, vol);
+	Serial.println("clicks");
+	delay(duration + isi);
 
-	// SPI_TGM.quick_tone_clicks_cosramp_2ms(duration, carrierFq, clicksDur, clicksPeriod1, vol);
-	// Serial.println("clicks1");
-	// delay(duration + isi);
+	SPI_TGM.quick_tone_clicks_cosramp_2ms(duration, carrierFq, clicksDur, clicksPeriod1, vol);
+	Serial.println("clicks1");
+	delay(duration + isi);
 
-	// SPI_TGM.quick_sweep_exp_cosramp_5ms(duration, fq0, fq1, vol);
-	// Serial.println("exp");
-	// delay(duration + isi);
+	SPI_TGM.quick_sweep_exp_cosramp_5ms(duration, fq0, fq1, vol);
+	Serial.println("exp");
+	delay(duration + isi);
 
-	// SPI_TGM.quick_sweep_exp_cosramp_5ms(duration, fq1, fq0, vol);
-	// Serial.println("exp down");
-	// delay(duration + isi);
+	SPI_TGM.quick_sweep_exp_cosramp_5ms(duration, fq1, fq0, vol);
+	Serial.println("exp down");
+	delay(duration + isi);
 
-	// SPI_TGM.quick_sweep_linear_cosramp_5ms(duration, fq0, fq1, vol);
-	// Serial.println("linear");
-	// delay(duration + isi);
+	SPI_TGM.quick_sweep_linear_cosramp_5ms(duration, fq0, fq1, vol);
+	Serial.println("linear");
+	delay(duration + isi);
 
-	// SPI_TGM.quick_noise_cosramp_5ms(duration, fq0, fq1, vol, SWEEP_NOISE_WHITE);
-	// Serial.println("SWEEP_NOISE_WHITE");
-	// delay(duration + isi);
+	SPI_TGM.quick_noise_cosramp_5ms(duration, fq0, fq1, vol, SWEEP_NOISE_WHITE);
+	Serial.println("SWEEP_NOISE_WHITE");
+	delay(duration + isi);
 
-	// SPI_TGM.quick_noise_cosramp_5ms(duration, fq0, fq1, vol, SWEEP_NOISE_GAUSS1);
-	// Serial.println("SWEEP_NOISE_GAUSS1");
-	// delay(duration + isi);
+	SPI_TGM.quick_noise_cosramp_5ms(duration, fq0, fq1, vol, SWEEP_NOISE_GAUSS1);
+	Serial.println("SWEEP_NOISE_GAUSS1");
+	delay(duration + isi);
 
-	// SPI_TGM.quick_noise_cosramp_5ms(duration, fq0, fq1, vol, SWEEP_NOISE_GAUSS2);
-	// Serial.println("SWEEP_NOISE_GAUSS2");
-	// delay(duration + isi);
+	SPI_TGM.quick_noise_cosramp_5ms(duration, fq0, fq1, vol, SWEEP_NOISE_GAUSS2);
+	Serial.println("SWEEP_NOISE_GAUSS2");
+	delay(duration + isi);
 
-	// SPI_TGM.quick_noise_cosramp_5ms(duration, fq0, fq1, vol, SWEEP_NOISE_GAUSS3);
-	// Serial.println("SWEEP_NOISE_GAUSS3");
-	// delay(duration + isi);
+	SPI_TGM.quick_noise_cosramp_5ms(duration, fq0, fq1, vol, SWEEP_NOISE_GAUSS3);
+	Serial.println("SWEEP_NOISE_GAUSS3");
+	delay(duration + isi);
 
-	// SPI_TGM.quick_chord_cosramp_5ms(duration, chord, sizeof(chord) / sizeof(uint32_t), vol);
-	// Serial.println("chord");
-	// delay(duration + isi);
+	SPI_TGM.quick_chord_cosramp_5ms(duration, chord, sizeof(chord) / sizeof(uint32_t), vol);
+	Serial.println("chord");
+	delay(duration + isi);
+
+	SPI_TGM.quick_chord_cosramp_5ms(duration, chord2, sizeof(chord2) / sizeof(uint32_t), vol);
+	Serial.println("chord");
+	delay(duration + isi);
+
 }

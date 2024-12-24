@@ -1,5 +1,7 @@
 /* version 12
  * modified in 20210721
+ * suit for TGM_host_Ver03(esp32-s2) and teensy 3.6
+ * Compatible with arduino esp32 library version 2.0.17 
  * add fucntions suit for TGM_NI_Ver01
  * change: can specify the tone loop time now.
  */
